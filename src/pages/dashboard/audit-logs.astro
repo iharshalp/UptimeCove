@@ -1,0 +1,19 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { env } from 'cloudflare:workers';
+import { listAuditLogs } from '../../lib/auth';
+const logs = await listAuditLogs(env, { limit: 100 });
+---
+<DashboardLayout title="Audit Logs — UptimeCove" active="audit-logs">
+  <div class="mx-auto max-w-4xl px-6 py-8">
+      <h1 class="text-2xl font-bold text-slate-900">Audit Logs</h1>
+      <div class="card mt-6 overflow-x-auto">
+        <table class="w-full min-w-[720px] text-left text-sm">
+          <thead><tr class="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400"><th class="px-6 py-3">Time</th><th class="px-6 py-3">Actor</th><th class="px-6 py-3">Action</th><th class="px-6 py-3">Target</th></tr></thead>
+          <tbody>{logs.map((l:any)=><tr class="border-b border-slate-50"><td class="px-6 py-3 font-mono text-xs text-slate-500">{new Date(l.created_at*1000).toLocaleString()}</td><td class="px-6 py-3">{l.actor||'—'}</td><td class="px-6 py-3 font-mono text-xs">{l.action}</td><td class="px-6 py-3 text-xs">{l.target_type||''} {l.target_id||''}</td></tr>)}</tbody>
+        </table>
+        {logs.length===0 && <div class="p-8 text-center text-sm text-slate-400">No activity yet.</div>}
+      </div>
+      <a href="/dashboard" class="mt-6 inline-block text-sm font-medium text-blue-600">← Back</a>
+    </div>
+</DashboardLayout>

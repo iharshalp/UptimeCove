@@ -1,0 +1,335 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+import { getStatusPageById, getStatusPageMonitorIds, listMonitors } from '../../../lib/queries';
+
+const id = Number(Astro.params.id);
+if (!Number.isInteger(id)) return Astro.redirect('/dashboard/status-pages');
+const page = await getStatusPageById(env, id);
+if (!page) return Astro.redirect('/dashboard/status-pages');
+const monitorIds = await getStatusPageMonitorIds(env, id);
+const monitors = await listMonitors(env);
+
+// sort: selected first in order, then unselected
+const idSet = new Set(monitorIds);
+const selected = monitorIds
+	.map((mid) => monitors.find((m) => m.id === mid))
+	.filter(Boolean) as typeof monitors;
+const unselected = monitors.filter((m) => !idSet.has(m.id));
+const orderedSelected = selected; // already in DB order
+---
+
+<Base title={`Edit ${page.title} — UptimeCove`}>
+	<div class="min-h-screen">
+		<aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col rounded-r-3xl bg-white shadow-sm shadow-slate-900/5 lg:flex">
+			<a href="/" class="flex items-center gap-2.5 px-7 pt-7 font-bold tracking-tight text-slate-900">
+				<span class="flex size-9 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-600/30">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>
+				</span>
+				<span class="text-lg">UptimeCove</span>
+			</a>
+			<nav class="mt-10 flex-1 space-y-1.5 px-4">
+				<a href="/dashboard" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 13h8V3H3v10zm0 8h8v-5H3v5zm10 0h8V11h-8v10zm0-18v5h8V3h-8z"/></svg>
+					Dashboard
+				</a>
+				<a href="/dashboard/status-pages" class="flex items-center gap-3 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/25">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+					Status Pages
+				</a>
+				<a href={`/status/${page.slug}`} target="_blank" rel="noopener" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+					View Public
+				</a>
+				<span class="flex cursor-not-allowed items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-300" title="Coming soon">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+					Settings
+				</span>
+			</nav>
+			<div class="px-4 pb-6">
+				<form method="POST" action="/api/auth/logout">
+					<button class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600">
+						<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9"/></svg>
+						Sign out
+					</button>
+				</form>
+			</div>
+		</aside>
+
+		<header class="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur lg:hidden">
+			<a href="/" class="flex items-center gap-2 font-bold text-slate-900">
+				<span class="flex size-8 items-center justify-center rounded-lg bg-blue-600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></span>
+				UptimeCove
+			</a>
+			<div class="flex items-center gap-3 text-sm font-medium">
+				<a href="/dashboard/status-pages" class="text-slate-500">Pages</a>
+				<a href="/status/default" class="text-slate-500">Status</a>
+			</div>
+		</header>
+
+		<main class="lg:pl-64">
+			<div class="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+				<div class="flex flex-wrap items-center gap-3">
+					<a href="/dashboard/status-pages" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">← Back to pages</a>
+					<a href={`/status/${page.slug}`} target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">View public /status/{page.slug} →</a>
+				</div>
+
+				<h1 class="mt-6 text-2xl font-bold tracking-tight text-slate-900">Edit status page</h1>
+				<p class="mt-1 text-sm text-slate-500">Page <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{page.slug}</code> · ID {page.id}</p>
+
+				<div id="flash" class="mt-5 hidden rounded-2xl border px-5 py-3 text-sm font-medium"></div>
+
+				<!-- Edit form -->
+				<section class="card mt-6 p-6 sm:p-7">
+					<h2 class="font-semibold text-slate-900">Page details</h2>
+					<form id="edit-form" class="mt-4 grid gap-4">
+						<div class="grid gap-4 sm:grid-cols-2">
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Title *</span>
+								<input name="title" value={page.title} required maxlength="120"
+									class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Slug</span>
+								<input name="slug" value={page.slug} maxlength="48"
+									class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+						</div>
+						<label class="grid gap-1.5">
+							<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Description</span>
+							<textarea name="description" rows="2" maxlength="2000"
+								class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10">{page.description ?? ''}</textarea>
+						</label>
+						<div class="grid gap-4 sm:grid-cols-3">
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Branding logo URL</span>
+								<input name="branding_logo_url" type="url" value={page.branding_logo_url ?? ''} placeholder="https://…"
+									class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Theme</span>
+								<select name="branding_theme" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 focus:border-blue-400 focus:outline-none">
+									<option value="" selected={!page.branding_theme}>Default</option>
+									<option value="light" selected={page.branding_theme === 'light'}>Light</option>
+									<option value="dark" selected={page.branding_theme === 'dark'}>Dark</option>
+									<option value="blue" selected={page.branding_theme === 'blue'}>Blue</option>
+									<option value="emerald" selected={page.branding_theme === 'emerald'}>Emerald</option>
+								</select>
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Custom domain</span>
+								<input name="custom_domain" value={page.custom_domain ?? ''} placeholder="status.example.com"
+									class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+						</div>
+						<label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+							<input type="checkbox" name="is_public" checked={!!page.is_public} class="size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+							Public
+						</label>
+						<div class="flex justify-end">
+							<button class="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 hover:bg-blue-700">Save details</button>
+						</div>
+					</form>
+				</section>
+
+				<!-- Monitor selection -->
+				<section class="card mt-6 p-6 sm:p-7">
+					<div class="flex flex-wrap items-center justify-between gap-3">
+						<h2 class="font-semibold text-slate-900">Monitors on this page</h2>
+						<span class="text-xs font-medium text-slate-400">Drag to reorder or use order numbers · Unchecked monitors are hidden</span>
+					</div>
+					<p class="mt-1 text-sm text-slate-500">Checked monitors appear on <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs">/status/{page.slug}</code> in the order shown. Leave all unchecked (with page <code class="font-mono text-xs">default</code>) to fall back to showing all monitors.</p>
+
+					<form id="monitors-form" class="mt-5">
+						<div id="sortable" class="space-y-2">
+							{[...orderedSelected, ...unselected].map((m) => {
+								const checked = idSet.has(m.id);
+								const order = checked ? monitorIds.indexOf(m.id) : 999;
+								return (
+									<label
+										data-monitor-id={m.id}
+										draggable="true"
+										class={`flex items-center gap-3 rounded-xl border bg-white px-4 py-3 transition ${checked ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200'}`}
+									>
+										<span class="cursor-grab select-none text-slate-300 hover:text-slate-500" title="Drag to reorder">≡</span>
+										<input type="checkbox" value={m.id} checked={checked} class="monitor-check size-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+										<span class={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${checked ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{m.name.charAt(0).toUpperCase()}</span>
+										<div class="min-w-0 flex-1">
+											<div class="truncate text-sm font-semibold text-slate-800">{m.name}</div>
+											<div class="truncate font-mono text-xs text-slate-400">{m.url}</div>
+										</div>
+										<span class={`hidden items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${m.current_status === 'up' ? 'bg-emerald-50 text-emerald-600' : m.current_status === 'down' ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>{m.current_status}</span>
+										<input
+											type="number"
+											min="0"
+											max="999"
+											value={checked ? order : 999}
+											class="order-input w-16 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center font-mono text-sm text-slate-700 focus:border-blue-400 focus:outline-none"
+											title="Order (0 = first)"
+										/>
+									</label>
+								);
+							})}
+							{monitors.length === 0 && <p class="py-8 text-center text-sm text-slate-400">No monitors yet — <a href="/dashboard" class="font-semibold text-blue-600 hover:text-blue-700">create one on the dashboard</a>.</p>}
+						</div>
+						<div class="mt-6 flex flex-wrap justify-end gap-3">
+							<button type="button" id="reorder-btn" class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Sort by order #</button>
+							<button type="submit" class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Save monitor order</button>
+						</div>
+					</form>
+				</section>
+
+				<!-- Danger zone -->
+				<section class="card mt-6 border-red-100 p-6 sm:p-7">
+					<h2 class="font-semibold text-red-600">Danger zone</h2>
+					<p class="mt-1 text-sm text-slate-500">Deleting a status page removes its monitor ordering but not the monitors themselves.</p>
+					<button id="delete-page" class="mt-4 rounded-xl border border-red-200 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">Delete this page</button>
+				</section>
+			</div>
+		</main>
+	</div>
+
+	<script is:inline define:vars={{ pageId: page.id, initialIds: monitorIds }}>
+		function flash(msg, ok = true) {
+			const el = document.getElementById('flash');
+			el.textContent = msg;
+			el.className = `mt-5 rounded-2xl border px-5 py-3 text-sm font-medium ${ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-600'}`;
+			el.classList.remove('hidden');
+			setTimeout(() => el.classList.add('hidden'), 3500);
+		}
+
+		// Edit form
+		document.getElementById('edit-form')?.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const fd = new FormData(e.target);
+			const payload = {
+				title: String(fd.get('title') ?? '').trim(),
+				slug: String(fd.get('slug') ?? '').trim() || undefined,
+				description: String(fd.get('description') ?? '').trim() || null,
+				branding_logo_url: String(fd.get('branding_logo_url') ?? '').trim() || null,
+				branding_theme: String(fd.get('branding_theme') ?? '').trim() || null,
+				custom_domain: String(fd.get('custom_domain') ?? '').trim() || null,
+				is_public: (e.target.querySelector('input[name="is_public"]')).checked ? 1 : 0,
+			};
+			try {
+				const res = await fetch(`/api/status-pages/${pageId}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data.error ?? res.statusText);
+				flash(`Saved — now at /status/${data.page.slug}`);
+				if (data.page.slug && data.page.slug !== new URL(location.href).pathname.split('/').pop()) {
+					// slug changed: update links but stay on edit page; optionally navigate
+					setTimeout(() => location.reload(), 600);
+				}
+			} catch (err) { flash(err.message, false); }
+		});
+
+		// Monitors drag + order
+		const sortable = document.getElementById('sortable');
+		let dragEl = null;
+		if (sortable) {
+			sortable.addEventListener('dragstart', (e) => {
+				const target = e.target.closest('[draggable]');
+				if (!target) return;
+				dragEl = target;
+				e.dataTransfer.effectAllowed = 'move';
+				setTimeout(() => { if (dragEl) dragEl.style.opacity = '0.5'; }, 0);
+			});
+			sortable.addEventListener('dragend', () => {
+				if (dragEl) dragEl.style.opacity = '';
+				dragEl = null;
+			});
+			sortable.addEventListener('dragover', (e) => {
+				e.preventDefault();
+				const target = e.target.closest('[draggable]');
+				if (!target || target === dragEl) return;
+				const rect = target.getBoundingClientRect();
+				const next = (e.clientY - rect.top) / (rect.height / 2) > 0.5;
+				sortable.insertBefore(dragEl, next ? target.nextSibling : target);
+				reindexOrderInputs();
+			});
+		}
+
+		function reindexOrderInputs() {
+			// update number inputs to reflect DOM order for checked items
+			const rows = [...(sortable?.querySelectorAll('[data-monitor-id]') ?? [])];
+			let order = 0;
+			for (const row of rows) {
+				const cb = row.querySelector('.monitor-check');
+				const num = row.querySelector('.order-input');
+				if (cb && cb.checked) {
+					num.value = String(order++);
+					num.classList.remove('opacity-40');
+				} else {
+					num.value = '999';
+				}
+			}
+		}
+
+		// keep order numbers and checked state in sync
+		sortable?.addEventListener('change', (e) => {
+			if (e.target.classList.contains('monitor-check')) {
+				const row = e.target.closest('[data-monitor-id]');
+				row.classList.toggle('border-blue-200', e.target.checked);
+				row.classList.toggle('bg-blue-50/40', e.target.checked);
+				reindexOrderInputs();
+			}
+		});
+
+		document.getElementById('reorder-btn')?.addEventListener('click', () => {
+			const rows = [...(sortable?.querySelectorAll('[data-monitor-id]') ?? [])];
+			rows.sort((a, b) => {
+				const aChecked = a.querySelector('.monitor-check').checked;
+				const bChecked = b.querySelector('.monitor-check').checked;
+				if (aChecked !== bChecked) return aChecked ? -1 : 1;
+				const aOrder = Number(a.querySelector('.order-input').value);
+				const bOrder = Number(b.querySelector('.order-input').value);
+				return aOrder - bOrder;
+			});
+			for (const r of rows) sortable.appendChild(r);
+			reindexOrderInputs();
+			flash('Sorted by order numbers');
+		});
+
+		// Monitors form submit -> PUT /api/status-pages/[id]/monitors
+		document.getElementById('monitors-form')?.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			// build ordered list from DOM order, only checked
+			const rows = [...(sortable?.querySelectorAll('[data-monitor-id]') ?? [])];
+			// if order inputs have explicit numbers, sort by them first
+			const checkedRows = rows.filter((r) => r.querySelector('.monitor-check').checked);
+			// Sort checkedRows by order input numeric value, then by DOM position
+			checkedRows.sort((a, b) => {
+				const av = Number(a.querySelector('.order-input').value);
+				const bv = Number(b.querySelector('.order-input').value);
+				if (!Number.isNaN(av) && !Number.isNaN(bv) && av !== bv) return av - bv;
+				return 0; // keep DOM order
+			});
+			const ids = checkedRows.map((r) => Number(r.dataset.monitorId));
+			try {
+				const res = await fetch(`/api/status-pages/${pageId}/monitors`, {
+					method: 'PUT',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ monitorIds: ids }),
+				});
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data.error ?? res.statusText);
+				flash(`Saved ${ids.length} monitor(s) for this page`);
+			} catch (err) { flash(err.message, false); }
+		});
+
+		document.getElementById('delete-page')?.addEventListener('click', async () => {
+			if (!confirm('Delete this status page? This cannot be undone.')) return;
+			try {
+				const res = await fetch(`/api/status-pages/${pageId}`, { method: 'DELETE' });
+				if (!res.ok) {
+					const data = await res.json().catch(() => ({}));
+					throw new Error(data.error ?? res.statusText);
+				}
+				location.href = '/dashboard/status-pages';
+			} catch (err) { flash(err.message, false); }
+		});
+
+		// initial reindex
+		reindexOrderInputs();
+	</script>
+</Base>

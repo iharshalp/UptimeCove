@@ -1,0 +1,42 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+# local secrets
+.dev.vars
+.wrangler/
+wrangler-state/
+# local Cloudflare resource IDs — copy wrangler.jsonc.example -> wrangler.jsonc
+wrangler.jsonc
+cookies.txt
+cj*.txt
+homepage.html
+coverage/
+
+# editor / AI artifacts (do not publish)
+.vscode/
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/

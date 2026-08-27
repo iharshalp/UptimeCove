@@ -1,0 +1,65 @@
+---
+import type { DailyUptime } from '../lib/queries';
+
+interface Props {
+	days: DailyUptime[];
+	totalDays?: number;
+}
+const { days, totalDays = 90 } = Astro.props;
+
+const byDay = new Map(days.map((d) => [d.day, d]));
+const bars: { day: string; ratio: number; avg_ms: number | null }[] = [];
+for (let i = totalDays - 1; i >= 0; i--) {
+	const date = new Date(Date.now() - i * 86400_000).toISOString().slice(0, 10);
+	const d = byDay.get(date);
+	bars.push({
+		day: date,
+		ratio: d && d.total > 0 ? d.ok / d.total : -1,
+		avg_ms: d?.avg_ms ?? null,
+	});
+}
+
+const totalOk = days.reduce((acc, d) => acc + d.ok, 0);
+const totalChecks = days.reduce((acc, d) => acc + d.total, 0);
+const uptimePct = totalChecks > 0 ? (totalOk / totalChecks) * 100 : null;
+const avgResponse =
+	totalChecks > 0
+		? Math.round(days.reduce((acc, d) => acc + (d.avg_ms ?? 0) * d.total, 0) / totalChecks)
+		: null;
+
+function barColor(ratio: number): string {
+	if (ratio < 0) return 'bg-slate-200';
+	if (ratio >= 0.995) return 'bg-emerald-500';
+	if (ratio >= 0.95) return 'bg-emerald-400';
+	if (ratio >= 0.8) return 'bg-amber-400';
+	return 'bg-red-500';
+}
+
+function fmtDay(day: string): string {
+	return new Date(day + 'T00:00:00Z').toLocaleDateString('en-US', {
+		month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+	});
+}
+---
+
+<div>
+	<div class="flex items-baseline justify-between gap-4">
+		<div class="text-sm text-slate-500">
+			{uptimePct === null ? (
+				<span class="text-slate-400">No data yet</span>
+			) : (
+				<span><span class="font-semibold text-emerald-600">{uptimePct.toFixed(3)}%</span> uptime · 90 days</span>
+			)}
+			{avgResponse !== null && <span class="ml-2 text-slate-400">· {avgResponse} ms avg</span>}
+		</div>
+		<div class="text-xs text-slate-400">90 days ago<b class="mx-1">→</b>Today</div>
+	</div>
+	<div class="mt-2 flex h-8 items-stretch gap-[2px] overflow-hidden rounded-md">
+		{bars.map((b) => (
+			<div
+				class={`min-w-[3px] flex-1 rounded-sm transition-transform hover:scale-y-125 ${barColor(b.ratio)}`}
+				title={b.ratio < 0 ? `${fmtDay(b.day)} — no checks` : `${fmtDay(b.day)} — ${(b.ratio * 100).toFixed(1)}% ok${b.avg_ms ? ` · ${b.avg_ms}ms` : ''}`}
+			></div>
+		))}
+	</div>
+</div>

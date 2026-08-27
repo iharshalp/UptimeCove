@@ -1,0 +1,79 @@
+---
+// @ts-nocheck
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="API Docs — UptimeCove">
+  <div class="mx-auto max-w-4xl px-6 py-12">
+    <h1 class="text-3xl font-bold text-slate-900">API Documentation</h1>
+    <p class="mt-2 text-slate-500">Base URL: <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm">https://uptimecove.com</code></p>
+
+    <div class="mt-8 space-y-6">
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">GET /api/status/&lbrace;slug&rbrace;</h2>
+        <p class="mt-2 text-sm text-slate-600">Public. Returns status page and monitors with daily uptime. <span class="font-mono text-xs bg-slate-100 px-1 rounded">Cache-Control: no-store</span></p>
+        <pre class="mt-3 overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-300"><code>&lbrace;
+  "page": "default",
+  "monitors": [&lbrace; "id": 1, "name": "API", "status": "up", "dailyUptime": [...] &rbrace;]
+&rbrace;</code></pre>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">POST /api/monitors</h2>
+        <p class="mt-2 text-sm text-slate-600">Auth required. Create monitor. Body: <code>name, url, method?, expected_status?, interval_seconds?, timeout_ms?, body_must_contain?, body_must_not_contain?, max_response_time_ms?, custom_headers? (JSON)</code></p>
+        <p class="text-xs text-slate-400">Form posts redirect to /dashboard, JSON returns 201.</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">PUT /api/monitors/&lbrace;id&rbrace;</h2>
+        <p class="mt-2 text-sm text-slate-600">Update monitor. Same fields as create, partial allowed.</p>
+      </section>
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">POST /api/monitors/&lbrace;id&rbrace;/toggle · POST /api/monitors/&lbrace;id&rbrace;/delete</h2>
+        <p class="mt-2 text-sm text-slate-600">Pause/resume or delete. Returns 204 or 404.</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">POST /api/checks/run</h2>
+        <p class="mt-2 text-sm text-slate-600">Auth required. Forces checked batch for due monitors. Returns <code>&lbrace; checked, failed &rbrace;</code></p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">GET /api/status-pages · POST /api/status-pages</h2>
+        <p class="mt-2 text-sm text-slate-600">List/create status pages. Fields: title, slug, description, branding_logo_url, branding_theme, custom_domain, is_public</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">PUT /api/status-pages/&lbrace;id&rbrace; · DELETE /api/status-pages/&lbrace;id&rbrace;</h2>
+        <p class="mt-2 text-sm text-slate-600">Update/delete page. Default page protected if sole page.</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">PUT /api/status-pages/&lbrace;id&rbrace;/monitors</h2>
+        <p class="mt-2 text-sm text-slate-600">Set ordered monitor ids: <code>&lbrace; monitorIds: [1,2] &rbrace;</code></p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">GET /api/notification-channels · POST /api/notification-channels</h2>
+        <p class="mt-2 text-sm text-slate-600">Types: email, webhook, slack, discord. Config: url/webhook_url, to, endpoint etc.</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">POST /api/incidents/&lbrace;id&rbrace;/resolve · POST /api/incidents/&lbrace;id&rbrace;/updates</h2>
+        <p class="mt-2 text-sm text-slate-600">Resolve incident or add timeline update (message, author).</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">POST /api/maintenance · DELETE /api/maintenance/&lbrace;id&rbrace;</h2>
+        <p class="mt-2 text-sm text-slate-600">Maintenance windows to suppress alerts. Fields: title, monitor_id (null=global), start_at, end_at (unix sec or ISO), description.</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-slate-900">Auth</h2>
+        <p class="mt-2 text-sm text-slate-600">Single admin token via <code>ADMIN_TOKEN</code>. Login POSTs to <code>/api/auth/login</code> sets <code>uc_session</code> HttpOnly session cookie (7d, Secure in prod, Lax). All <code>/dashboard</code> and <code>/api/*</code> except <code>/api/status/*</code> and <code>/api/auth/*</code> require it. Sessions table validates and revokes on token rotation.</p>
+      </section>
+    </div>
+
+    <p class="mt-8 text-sm text-slate-400">See <a href="https://github.com/anomalyco/opencode" class="text-blue-600 hover:underline">repo</a> for OpenAPI JSON when available. PRs to improve docs welcome.</p>
+  </div>
+</Base>

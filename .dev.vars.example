@@ -1,0 +1,4 @@
+# Secret used to sign into the dashboard.
+# Generate one: openssl rand -hex 24
+# Production: npx wrangler secret put ADMIN_TOKEN
+ADMIN_TOKEN=change-me-to-a-long-random-string

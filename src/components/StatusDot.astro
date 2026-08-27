@@ -1,0 +1,20 @@
+---
+interface Props {
+	status: 'up' | 'down' | 'paused' | 'pending';
+	size?: 'sm' | 'md' | 'lg';
+	pulse?: boolean;
+}
+const { status, size = 'md', pulse = true } = Astro.props;
+const colors = {
+	up: 'bg-emerald-500 text-emerald-500',
+	down: 'bg-red-500 text-red-500',
+	paused: 'bg-slate-400 text-slate-400',
+	pending: 'bg-amber-400 text-amber-400',
+} as const;
+const sizes = { sm: 'size-2', md: 'size-2.5', lg: 'size-3' } as const;
+---
+
+<span class="relative inline-flex shrink-0">
+	<span class={`absolute inset-0 rounded-full ${colors[status]} ${pulse && status === 'up' ? 'pulse-dot' : ''}`}></span>
+	<span class={`relative rounded-full ${colors[status]} ${sizes[size]}`}></span>
+</span>

@@ -1,0 +1,243 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+import { getMonitorById, getRecentChecks, getIncidents } from '../../../lib/queries';
+
+const rawId = Astro.params.id;
+const id = Number(rawId);
+if (!Number.isInteger(id)) {
+	return Astro.redirect('/dashboard');
+}
+const monitor = await getMonitorById(env, id);
+if (!monitor) {
+	return new Response('Monitor not found', { status: 404 });
+}
+const checks = await getRecentChecks(env, id, 25);
+const incidents = await getIncidents(env, id, 10);
+
+function fmtUnix(ts: number | null): string {
+	if (!ts) return '—';
+	return new Date(ts * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+---
+<Base title={`Edit ${monitor.name} — UptimeCove`}>
+	<div class="min-h-screen">
+		<aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col rounded-r-3xl bg-white shadow-sm shadow-slate-900/5 lg:flex">
+			<a href="/" class="flex items-center gap-2.5 px-7 pt-7 font-bold tracking-tight text-slate-900">
+				<span class="flex size-9 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-600/30">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>
+				</span>
+				<span class="text-lg">UptimeCove</span>
+			</a>
+			<nav class="mt-10 flex-1 space-y-1.5 px-4">
+				<a href="/dashboard" class="flex items-center gap-3 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/25">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 13h8V3H3v10zm0 8h8v-5H3v5zm10 0h8V11h-8v10zm0-18v5h8V3h-8z"/></svg>
+					Dashboard
+				</a>
+				<a href="/dashboard#monitors" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+					Monitors
+				</a>
+				<a href="/status/default" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+					Status Pages
+				</a>
+			</nav>
+			<div class="px-4 pb-6">
+				<form method="POST" action="/api/auth/logout">
+					<button class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600">Sign out</button>
+				</form>
+			</div>
+		</aside>
+		<main class="lg:pl-64">
+			<div class="mx-auto max-w-4xl px-5 py-8 sm:px-8">
+				<a href="/dashboard" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900">← Back to dashboard</a>
+				<div class="mt-3 flex flex-wrap items-start justify-between gap-4">
+					<div>
+						<h1 class="text-2xl font-bold tracking-tight text-slate-900">Edit monitor</h1>
+						<p class="mt-1 font-mono text-sm text-slate-500">{monitor.url}</p>
+					</div>
+					<span class:list={['rounded-full px-3 py-1 text-xs font-semibold', monitor.current_status === 'up' ? 'bg-emerald-50 text-emerald-600' : monitor.current_status === 'down' ? 'bg-red-50 text-red-500' : monitor.current_status === 'paused' ? 'bg-slate-100 text-slate-500' : 'bg-amber-50 text-amber-600']}>{monitor.current_status}</span>
+				</div>
+
+				<div id="flash" class="mt-5 hidden rounded-2xl border px-5 py-3 text-sm font-medium"></div>
+
+				<section class="card mt-6 p-6 sm:p-7">
+					<h2 class="font-semibold text-slate-900">Monitor settings</h2>
+					<form id="edit-form" class="mt-4 grid gap-4">
+						<div class="grid gap-4 sm:grid-cols-2">
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Name</span>
+								<input name="name" value={monitor.name} required maxlength="120" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">URL</span>
+								<input name="url" value={monitor.url} required type="url" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+						</div>
+						<div class="grid gap-4 sm:grid-cols-3">
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Method</span>
+								<select name="method" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:outline-none">
+									<option value="GET" selected={monitor.method === 'GET'}>GET</option>
+									<option value="HEAD" selected={monitor.method === 'HEAD'}>HEAD</option>
+								</select>
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Expected status</span>
+								<input name="expected_status" type="number" value={monitor.expected_status} min="100" max="599" required class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Timeout (ms)</span>
+								<input name="timeout_ms" type="number" value={monitor.timeout_ms} min="1000" max="30000" step="1" required class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+						</div>
+						<div class="grid gap-4 sm:grid-cols-2">
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Interval</span>
+								<select name="interval_seconds" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:border-blue-400 focus:outline-none">
+									<option value="60" selected={monitor.interval_seconds === 60}>Every minute</option>
+									<option value="300" selected={monitor.interval_seconds === 300}>Every 5 min</option>
+									<option value="900" selected={monitor.interval_seconds === 900}>Every 15 min</option>
+									<option value="3600" selected={monitor.interval_seconds === 3600}>Hourly</option>
+								</select>
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Max response time (ms) <span class="normal-case text-slate-400">500–30000, empty to disable</span></span>
+								<input name="max_response_time_ms" type="number" value={monitor.max_response_time_ms ?? ''} placeholder="e.g. 2000" min="500" max="30000" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+						</div>
+						<div class="grid gap-4 sm:grid-cols-2">
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Body must contain <span class="normal-case text-slate-400">max 500 chars</span></span>
+								<input name="body_must_contain" value={monitor.body_must_contain ?? ''} maxlength="500" placeholder="e.g. OK" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+							<label class="grid gap-1.5">
+								<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Body must not contain <span class="normal-case text-slate-400">max 500 chars</span></span>
+								<input name="body_must_not_contain" value={monitor.body_must_not_contain ?? ''} maxlength="500" placeholder="e.g. Error" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							</label>
+						</div>
+						<label class="grid gap-1.5">
+							<span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Custom headers <span class="normal-case text-slate-400">JSON object, e.g. &#123;&quot;X-Custom&quot;: &quot;value&quot;&#125;</span></span>
+							<textarea name="custom_headers" rows="3" placeholder={'{"X-Custom": "value"}'} class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10">{monitor.custom_headers ?? ''}</textarea>
+						</label>
+						<div class="flex gap-3 pt-2">
+							<button type="submit" class="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">Save changes</button>
+							<a href="/dashboard" class="rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</a>
+						</div>
+					</form>
+				</section>
+
+				<section class="card mt-8 p-6 sm:p-7">
+					<h2 class="font-semibold text-slate-900">Recent checks</h2>
+					{checks.length === 0 ? (
+						<div class="mt-4 rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">No checks yet — the first check runs within a minute.</div>
+					) : (
+						<div class="mt-4 overflow-x-auto">
+							<table class="w-full min-w-[520px] text-left text-sm">
+								<thead>
+									<tr class="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-400">
+										<th class="px-3 py-2">Time</th>
+										<th class="px-3 py-2">Status</th>
+										<th class="px-3 py-2">Code</th>
+										<th class="px-3 py-2">Response</th>
+										<th class="px-3 py-2">Error</th>
+									</tr>
+								</thead>
+								<tbody>
+									{checks.map((c) => (
+										<tr class="border-b border-slate-50 last:border-0">
+											<td class="px-3 py-2 font-mono text-xs text-slate-500">{fmtUnix(c.checked_at)}</td>
+											<td class="px-3 py-2"><span class:list={['rounded-full px-2 py-0.5 text-xs font-semibold', c.ok ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500']}>{c.ok ? 'OK' : 'FAIL'}</span></td>
+											<td class="px-3 py-2 text-slate-600">{c.status_code ?? '—'}</td>
+											<td class="px-3 py-2 text-slate-600">{c.response_time_ms !== null ? `${c.response_time_ms} ms` : '—'}</td>
+											<td class="max-w-[260px] truncate px-3 py-2 text-xs text-slate-500" title={c.error ?? ''}>{c.error ?? '—'}</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
+				</section>
+
+				<section class="card mt-6 p-6 sm:p-7">
+					<h2 class="font-semibold text-slate-900">Incidents</h2>
+					{incidents.length === 0 ? (
+						<div class="mt-4 rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">No incidents recorded for this monitor.</div>
+					) : (
+						<div class="mt-4 overflow-x-auto">
+							<table class="w-full min-w-[520px] text-left text-sm">
+								<thead>
+									<tr class="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-400">
+										<th class="px-3 py-2">Cause</th>
+										<th class="px-3 py-2">Started</th>
+										<th class="px-3 py-2">Resolved</th>
+										<th class="px-3 py-2">Duration</th>
+									</tr>
+								</thead>
+								<tbody>
+									{incidents.map((inc) => {
+										const dur = inc.resolved_at ? Math.max(1, Math.round((inc.resolved_at - inc.started_at)/60)) : null;
+										return (
+											<tr class="border-b border-slate-50 last:border-0">
+												<td class="px-3 py-2 text-slate-700">{inc.cause}</td>
+												<td class="px-3 py-2 font-mono text-xs text-slate-500">{fmtUnix(inc.started_at)}</td>
+												<td class="px-3 py-2 font-mono text-xs text-slate-500">{inc.resolved_at ? fmtUnix(inc.resolved_at) : 'Ongoing'}</td>
+												<td class="px-3 py-2 text-slate-500">{dur ? `${dur} min` : '—'}</td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						</div>
+					)}
+				</section>
+			</div>
+		</main>
+	</div>
+
+	<script define:vars={{ id }}>
+		const form = document.getElementById('edit-form');
+		const flash = document.getElementById('flash');
+		function showFlash(msg, ok) {
+			if (!flash) return;
+			flash.textContent = msg;
+			flash.className = ok ? 'mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-700' : 'mt-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-medium text-red-600';
+			flash.classList.remove('hidden');
+			setTimeout(() => flash.classList.add('hidden'), 4000);
+		}
+		form?.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const fd = new FormData(form);
+			const payload = {
+				name: String(fd.get('name') ?? ''),
+				url: String(fd.get('url') ?? ''),
+				method: String(fd.get('method') ?? 'GET'),
+				expected_status: fd.get('expected_status') ? Number(fd.get('expected_status')) : undefined,
+				timeout_ms: fd.get('timeout_ms') ? Number(fd.get('timeout_ms')) : undefined,
+				interval_seconds: fd.get('interval_seconds') ? Number(fd.get('interval_seconds')) : undefined,
+				body_must_contain: String(fd.get('body_must_contain') ?? ''),
+				body_must_not_contain: String(fd.get('body_must_not_contain') ?? ''),
+				max_response_time_ms: String(fd.get('max_response_time_ms') ?? '').trim() === '' ? null : Number(fd.get('max_response_time_ms')),
+				custom_headers: String(fd.get('custom_headers') ?? ''),
+			};
+			// Normalize empty strings to null for optional fields so validation treats them as cleared
+			if (payload.body_must_contain.trim() === '') payload.body_must_contain = null;
+			if (payload.body_must_not_contain.trim() === '') payload.body_must_not_contain = null;
+			if (payload.custom_headers.trim() === '') payload.custom_headers = null;
+			try {
+				const res = await fetch(`/api/monitors/${id}`, {
+					method: 'PUT',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify(payload),
+				});
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data.error || res.statusText);
+				showFlash('Monitor updated', true);
+				setTimeout(() => location.reload(), 600);
+			} catch (err) {
+				showFlash(`Failed: ${err.message}`, false);
+			}
+		});
+	</script>
+</Base>

@@ -1,0 +1,57 @@
+---
+import Base from '../layouts/Base.astro';
+const error = Astro.url.searchParams.get('error');
+---
+
+<Base title="Sign in">
+	<main class="flex min-h-screen flex-col items-center justify-center bg-[#eef1f6] px-6 py-12">
+		<div class="mb-6 flex items-center gap-2 text-xs font-medium">
+			<a href="https://github.com/iharshalp/UptimeCove" target="_blank" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 hover:bg-slate-50">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.19-1.49 3.15-1.18 3.15-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.77 1.05.77 2.12 0 1.53-.01 2.76-.01 3.14 0 .3.2.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+				Open Source • MIT
+			</a>
+			<a href="/demo" class="rounded-full bg-slate-900 px-3 py-1 text-white hover:bg-slate-800">View Demo →</a>
+		</div>
+		<div class="card w-full max-w-sm p-8">
+			<div class="mb-6 flex justify-center">
+				<span class="flex size-9 items-center justify-center rounded-xl bg-white border border-slate-200">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+				</span>
+			</div>
+			<h1 class="text-center text-lg font-bold text-slate-900">Sign in</h1>
+			<p class="mt-1 text-center text-sm text-slate-500">Self-hosted instance. Use your own <code class="rounded bg-slate-100 px-1 font-mono text-xs">ADMIN_TOKEN</code>.</p>
+
+			{error && (
+				<div class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{error}</div>
+			)}
+
+			<form method="POST" action="/api/auth/login" class="mt-6 space-y-4">
+				<input type="hidden" name="next" value={Astro.url.searchParams.get('next') ?? '/dashboard'} />
+				<label class="sr-only" for="admin-token">Admin token</label>
+				<input
+					id="admin-token"
+					type="password"
+					name="token"
+					required
+					autofocus
+					placeholder="••••••••••••"
+					autocomplete="current-password"
+					class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center font-mono text-slate-800 placeholder:text-slate-300 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+				/>
+				<button type="submit" class="w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white shadow-md shadow-blue-600/25 transition hover:bg-blue-700">
+					Sign in
+				</button>
+			</form>
+			<p class="mt-6 text-center text-xs text-slate-400">
+				<a href="https://github.com/iharshalp/UptimeCove" target="_blank" class="font-medium text-slate-500 hover:text-slate-700">Fork on GitHub</a>
+				<span class="mx-1">•</span>
+				<a href="/demo" class="font-medium text-blue-600 hover:underline">Try demo</a>
+				<span class="mx-1">•</span>
+				<a href="https://github.com/iharshalp" target="_blank" class="hover:text-slate-600">iharshalp</a>
+			</p>
+		</div>
+		<p class="mt-6 text-center text-xs text-slate-400">
+			<span class="rounded-full bg-white border border-slate-200 px-3 py-1">Powered by Cloudflare Workers • D1 • Astro</span>
+		</p>
+	</main>
+</Base>

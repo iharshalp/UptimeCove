@@ -1,0 +1,37 @@
+---
+// @ts-nocheck
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { env } from 'cloudflare:workers';
+const pages = await env.DB.prepare(`SELECT id, slug, title FROM status_pages ORDER BY created_at DESC`).all().then(r=>r.results??[]);
+const selected = Number(Astro.url.searchParams.get('page_id') ?? pages[0]?.id ?? 1);
+const subs = await env.DB.prepare(`SELECT id, email, verified, created_at FROM subscribers WHERE status_page_id = ? ORDER BY created_at DESC LIMIT 100`).bind(selected).all().then(r=>r.results??[]);
+---
+<DashboardLayout title="Subscribers — UptimeCove" active="subscribers">
+  <div class="mx-auto max-w-4xl px-6 py-8">
+      <h1 class="text-2xl font-bold text-slate-900">Subscribers</h1>
+      <p class="mt-1 text-sm text-slate-500">Email subscribers per status page. Verification is manual in this prototype.</p>
+      <form id="sub-form" class="card mt-6 p-6 flex gap-3">
+        <select name="page_id" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm">{pages.map((p:any)=><option value={p.id} selected={p.id===selected}>{p.title} ({p.slug})</option>)}</select>
+        <input name="email" type="email" placeholder="user@example.com" required class="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm" />
+        <button class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Subscribe</button>
+      </form>
+      <div id="flash" class="mt-4 hidden rounded-xl bg-blue-50 px-4 py-3 text-sm"></div>
+      <div class="card mt-6 overflow-hidden">
+        <table class="w-full text-left text-sm">
+          <thead><tr class="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400"><th class="px-6 py-3">Email</th><th class="px-6 py-3">Verified</th><th class="px-6 py-3">Created</th></tr></thead>
+          <tbody>{subs.map((s:any)=><tr class="border-b border-slate-50"><td class="px-6 py-3">{s.email}</td><td class="px-6 py-3">{s.verified?'Yes':'No'}</td><td class="px-6 py-3 text-slate-500">{new Date(s.created_at*1000).toLocaleString()}</td></tr>)}</tbody>
+        </table>
+        {subs.length===0 && <div class="p-8 text-center text-sm text-slate-400">No subscribers for this page.</div>}
+      </div>
+      <div class="mt-4 flex gap-4 text-sm">
+        <a href={`/api/status/${pages.find((p:any)=>p.id===selected)?.slug ?? 'default'}/rss`} class="font-medium text-blue-600">RSS feed</a>
+        <a href={`/api/badge/${pages.find((p:any)=>p.id===selected)?.slug ?? 'default'}`} class="font-medium text-blue-600">Badge SVG</a>
+      </div>
+      <a href="/dashboard" class="mt-6 inline-block text-sm font-medium text-blue-600">← Back</a>
+    </div>
+  <script>// @ts-nocheck
+
+    const f=document.getElementById('sub-form') as HTMLFormElement, flash=document.getElementById('flash')!;
+    f?.addEventListener('submit', async e=>{e.preventDefault();const d=new FormData(f);const r=await fetch('/api/subscribers',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({status_page_id:Number(d.get('page_id')), email:String(d.get('email'))})});const j=await r.json().catch(()=>({}));flash.textContent=r.ok?'Subscribed':((j as any).error||'Failed');flash.className='mt-4 rounded-xl px-4 py-3 text-sm '+(r.ok?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-600');flash.classList.remove('hidden');if(r.ok)setTimeout(()=>location.reload(),800);});
+  </script>
+</DashboardLayout>

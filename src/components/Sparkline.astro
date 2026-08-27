@@ -1,0 +1,62 @@
+---
+interface Props {
+	points: (number | null)[];
+	height?: number;
+}
+const { points, height = 96 } = Astro.props;
+
+const W = 300;
+const H = height;
+const PAD = 6;
+const gid = 'g' + Math.random().toString(36).slice(2, 8);
+
+const valid = points.filter((p): p is number => p !== null);
+const hasData = valid.length >= 1;
+
+let linePath = '';
+let areaPath = '';
+let singleY: number | null = null;
+
+if (hasData) {
+	const max = Math.max(...valid);
+	const min = Math.min(...valid);
+	const range = max - min || 1;
+	const n = points.length;
+	const x = (i: number) => (n <= 1 ? W / 2 : PAD + (i / (n - 1)) * (W - PAD * 2));
+	const y = (v: number) => H - PAD - ((v - min) / range) * (H - PAD * 2);
+
+	const coords = points.map((p, i) => ({ x: x(i), y: y(p ?? min) }));
+	if (n <= 1 || valid.length === 1) {
+		singleY = y(valid[0]);
+		linePath = `M ${PAD} ${singleY} L ${W - PAD} ${singleY}`;
+		areaPath = `${linePath} L ${W - PAD} ${H - 2} L ${PAD} ${H - 2} Z`;
+	} else {
+		linePath = `M ${coords[0].x} ${coords[0].y}`;
+		for (let i = 0; i < coords.length - 1; i++) {
+			const c = coords[i];
+			const nx = coords[i + 1];
+			const mx = (c.x + nx.x) / 2;
+			linePath += ` C ${mx} ${c.y}, ${mx} ${nx.y}, ${nx.x} ${nx.y}`;
+		}
+		areaPath = `${linePath} L ${coords[coords.length - 1].x} ${H - 2} L ${coords[0].x} ${H - 2} Z`;
+	}
+}
+---
+
+<svg viewBox={`0 0 ${W} ${H}`} class="w-full" style={`height:${H}px`} preserveAspectRatio="none" fill="none" aria-hidden="true">
+	{hasData ? (
+		<>
+			<defs>
+				<linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0%" stop-color="#2563eb" stop-opacity="0.18"></stop>
+					<stop offset="100%" stop-color="#2563eb" stop-opacity="0"></stop>
+				</linearGradient>
+			</defs>
+			<path d={areaPath} fill={`url(#${gid})`}></path>
+			<path d={linePath} stroke="#2563eb" stroke-width="2" stroke-linecap="round"></path>
+			{valid.length === 1 && singleY !== null && <circle cx={W / 2} cy={singleY} r="4" fill="#2563eb" stroke="white" stroke-width="2" />}
+		</>
+	) : (
+		<line x1={PAD} y1={H / 2} x2={W - PAD} y2={H / 2} stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 6"></line>
+	)}
+</svg>

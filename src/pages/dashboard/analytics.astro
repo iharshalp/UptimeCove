@@ -1,0 +1,23 @@
+---
+// @ts-nocheck
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { env } from 'cloudflare:workers';
+const since7d = Math.floor(Date.now()/1000) - 7*86400;
+const rows = await env.DB.prepare(`SELECT monitor_id, AVG(response_time_ms) as avg_ms, MIN(response_time_ms) as min_ms, MAX(response_time_ms) as max_ms, COUNT(*) as n FROM checks WHERE checked_at >= ? GROUP BY monitor_id`).bind(since7d).all().then(r=>r.results??[]);
+const mons = await env.DB.prepare(`SELECT id, name, url FROM monitors`).all().then(r=>new Map((r.results??[]).map((m:any)=>[m.id, m])));
+---
+<DashboardLayout title="Analytics — UptimeCove" active="analytics">
+  <div class="mx-auto max-w-4xl px-6 py-8">
+      <h1 class="text-2xl font-bold text-slate-900">Regional &amp; Performance Analytics</h1>
+      <p class="mt-1 text-sm text-slate-500">7-day latency aggregates per monitor. Region breakdown simulated via check_regions header.</p>
+      <div class="card mt-6 overflow-hidden">
+        <table class="w-full text-left text-sm">
+          <thead><tr class="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400"><th class="px-6 py-3">Monitor</th><th class="px-6 py-3">Checks</th><th class="px-6 py-3">Avg</th><th class="px-6 py-3">Min</th><th class="px-6 py-3">Max</th></tr></thead>
+          <tbody>{rows.map((r:any)=>{const m=mons.get(r.monitor_id);return <tr class="border-b border-slate-50"><td class="px-6 py-3 font-medium">{m?.name??r.monitor_id}<div class="font-mono text-xs text-slate-400">{m?.url??''}</div></td><td class="px-6 py-3">{r.n}</td><td class="px-6 py-3">{Math.round(r.avg_ms)}ms</td><td class="px-6 py-3">{r.min_ms}ms</td><td class="px-6 py-3">{r.max_ms}ms</td></tr>})}</tbody>
+        </table>
+        {rows.length===0 && <div class="p-8 text-center text-sm text-slate-400">No data in last 7 days.</div>}
+      </div>
+      <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-700">Workers AI summary: {rows.length? `Tracked ${rows.length} monitor(s) in last 7 days. Average latency ${Math.round(rows.reduce((a:any,c:any)=>a+c.avg_ms,0)/(rows.length||1))}ms.` : 'No data yet.'} <a href="/api/ai/summarize" class="font-semibold underline">Generate AI summary</a></div>
+      <a href="/dashboard" class="mt-6 inline-block text-sm font-medium text-blue-600">← Back</a>
+    </div>
+  </DashboardLayout>

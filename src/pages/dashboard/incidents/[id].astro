@@ -1,0 +1,220 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { env } from 'cloudflare:workers';
+import { getIncidentById, getIncidentUpdates } from '../../../lib/queries';
+
+const idParam = Astro.params.id;
+const id = Number(idParam);
+if (!Number.isInteger(id)) {
+	return Astro.redirect('/dashboard');
+}
+const incident = await getIncidentById(env, id);
+if (!incident) {
+	return new Response('Incident not found', { status: 404 });
+}
+const updates = await getIncidentUpdates(env, id);
+
+function fmt(ts: number): string {
+	return new Date(ts * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function duration(start: number, end: number | null): string {
+	const e = end ?? Math.floor(Date.now() / 1000);
+	const secs = Math.max(0, e - start);
+	if (secs < 60) return `${secs}s`;
+	if (secs < 3600) return `${Math.floor(secs / 60)}m ${secs % 60}s`;
+	if (secs < 86400) return `${Math.floor(secs / 3600)}h ${Math.floor((secs % 3600) / 60)}m`;
+	const days = Math.floor(secs / 86400);
+	const hrs = Math.floor((secs % 86400) / 3600);
+	return `${days}d ${hrs}h`;
+}
+const isResolved = incident.resolved_at !== null;
+const durLabel = duration(incident.started_at, incident.resolved_at);
+---
+
+<Base title={`Incident #${incident.id} — ${incident.name} — UptimeCove`}>
+	<div class="min-h-screen">
+		<aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col rounded-r-3xl bg-white shadow-sm shadow-slate-900/5 lg:flex">
+			<a href="/" class="flex items-center gap-2.5 px-7 pt-7 font-bold tracking-tight text-slate-900">
+				<span class="flex size-9 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-600/30">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>
+				</span>
+				<span class="text-lg">UptimeCove</span>
+			</a>
+			<nav class="mt-10 flex-1 space-y-1.5 px-4">
+				<a href="/dashboard" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 13h8V3H3v10zm0 8h8v-5H3v5zm10 0h8V11h-8v10zm0-18v5h8V3h-8z"/></svg>
+					Dashboard
+				</a>
+				<a href="/dashboard/maintenance" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/><path d="M9 3v18"/></svg>
+					Maintenance
+				</a>
+				<a href="/status/default" class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+					<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+					Status Pages
+				</a>
+			</nav>
+			<div class="px-4 pb-6">
+				<form method="POST" action="/api/auth/logout">
+					<button class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600">
+						<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9"/></svg>
+						Sign out
+					</button>
+				</form>
+			</div>
+		</aside>
+
+		<header class="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-5 backdrop-blur lg:hidden">
+			<a href="/" class="flex items-center gap-2 font-bold text-slate-900">
+				<span class="flex size-8 items-center justify-center rounded-lg bg-blue-600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></span>
+				UptimeCove
+			</a>
+			<div class="flex items-center gap-3 text-sm font-medium">
+				<a href="/dashboard" class="text-slate-500">Dashboard</a>
+				<a href="/dashboard/maintenance" class="text-slate-500">Maintenance</a>
+			</div>
+		</header>
+
+		<main class="lg:pl-64">
+			<div class="mx-auto max-w-4xl px-5 py-8 sm:px-8">
+				<a href="/dashboard" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+					Back to dashboard
+				</a>
+
+				<div class="mt-4 flex flex-wrap items-start justify-between gap-4">
+					<div>
+						<div class="flex items-center gap-3">
+							<span class={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${isResolved ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{isResolved ? 'Resolved' : 'Ongoing'}</span>
+							<span class="font-mono text-xs text-slate-400">Incident #{incident.id}</span>
+						</div>
+						<h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">{incident.name}</h1>
+						<a href={incident.url} target="_blank" rel="noopener noreferrer" class="font-mono text-sm text-blue-600 hover:text-blue-700">{incident.url}</a>
+					</div>
+					{!isResolved && (
+						<button id="resolve-btn" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700">
+							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+							Resolve incident
+						</button>
+					)}
+				</div>
+
+				<div id="flash" class="mt-5 hidden rounded-2xl border border-blue-100 bg-blue-50 px-5 py-3 text-sm font-medium text-blue-700"></div>
+
+				<section class="card mt-6 p-6 sm:p-7">
+					<h2 class="text-sm font-semibold text-slate-900">Incident details</h2>
+					<dl class="mt-4 grid gap-4 sm:grid-cols-2">
+						<div class="rounded-xl bg-slate-50 px-4 py-3">
+							<dt class="text-xs font-semibold uppercase tracking-wider text-slate-400">Cause</dt>
+							<dd class="mt-1 text-sm font-medium text-slate-800">{incident.cause}</dd>
+						</div>
+						<div class="rounded-xl bg-slate-50 px-4 py-3">
+							<dt class="text-xs font-semibold uppercase tracking-wider text-slate-400">Duration</dt>
+							<dd class="mt-1 text-sm font-medium text-slate-800">{durLabel} <span class="font-normal text-slate-400">{isResolved ? '(resolved)' : '(ongoing)'}</span></dd>
+						</div>
+						<div class="rounded-xl bg-slate-50 px-4 py-3">
+							<dt class="text-xs font-semibold uppercase tracking-wider text-slate-400">Started</dt>
+							<dd class="mt-1 font-mono text-sm text-slate-700">{fmt(incident.started_at)}</dd>
+						</div>
+						<div class="rounded-xl bg-slate-50 px-4 py-3">
+							<dt class="text-xs font-semibold uppercase tracking-wider text-slate-400">Resolved</dt>
+							<dd class="mt-1 font-mono text-sm text-slate-700">{incident.resolved_at ? fmt(incident.resolved_at) : '— Still ongoing'}</dd>
+						</div>
+					</dl>
+				</section>
+
+				<section class="card mt-6 p-6 sm:p-7">
+					<h2 class="text-sm font-semibold text-slate-900">Timeline</h2>
+					{updates.length === 0 ? (
+						<p class="mt-4 text-sm text-slate-400">No updates yet. Add the first update below.</p>
+					) : (
+						<ol class="mt-4 space-y-4 border-l border-slate-100 pl-6">
+							{updates.map((u) => (
+								<li class="relative">
+									<span class="absolute -left-[29px] top-1.5 size-2.5 rounded-full bg-blue-600 ring-4 ring-blue-50"></span>
+									<div class="flex flex-wrap items-center gap-2">
+										<span class="text-sm font-semibold text-slate-900">{u.author ?? 'System'}</span>
+										<span class="font-mono text-xs text-slate-400">{fmt(u.created_at)}</span>
+									</div>
+									<p class="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">{u.message}</p>
+								</li>
+							))}
+							<li class="relative">
+								<span class={`absolute -left-[29px] top-1.5 size-2.5 rounded-full ring-4 ${isResolved ? 'bg-emerald-500 ring-emerald-50' : 'bg-red-500 ring-red-50'}`}></span>
+								<div class="flex flex-wrap items-center gap-2">
+									<span class="text-sm font-semibold text-slate-900">{isResolved ? 'Resolved' : 'Incident started'}</span>
+									<span class="font-mono text-xs text-slate-400">{fmt(incident.started_at)} {isResolved && `· resolved ${fmt(incident.resolved_at!)}`}</span>
+								</div>
+								<p class="mt-1 text-sm text-slate-500">{incident.cause}</p>
+							</li>
+						</ol>
+					)}
+				</section>
+
+				<section class="card mt-6 p-6 sm:p-7">
+					<h2 class="text-sm font-semibold text-slate-900">Add update</h2>
+					<p class="mt-1 text-sm text-slate-500">Post a status update to the incident timeline. Visible on the internal timeline and optionally on status pages.</p>
+					<form id="update-form" class="mt-4 space-y-3">
+						<label class="sr-only" for="update-message">Update message</label>
+						<textarea id="update-message" name="message" rows="3" required maxlength="4000" placeholder="Investigating the issue…"
+							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10"></textarea>
+						<div class="flex flex-wrap items-center gap-3">
+							<input id="update-author" name="author" placeholder="Author (optional)" maxlength="120"
+								class="flex-1 min-w-[180px] rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+							<button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">
+								Post update
+							</button>
+						</div>
+					</form>
+				</section>
+			</div>
+		</main>
+	</div>
+
+	<script define:vars={{ incidentId: incident.id }}>
+		function flash(msg, isError=false) {
+			const el = document.getElementById('flash');
+			el.textContent = msg;
+			el.className = isError ? 'mt-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-medium text-red-600' : 'mt-5 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-3 text-sm font-medium text-blue-700';
+			el.classList.remove('hidden');
+			setTimeout(() => el.classList.add('hidden'), 4000);
+		}
+		document.getElementById('update-form')?.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const message = document.getElementById('update-message').value.trim();
+			const author = document.getElementById('update-author').value.trim();
+			if (!message) { flash('Message is required', true); return; }
+			const btn = e.target.querySelector('button[type=submit]');
+			btn.disabled = true; btn.textContent = 'Posting…';
+			try {
+				const res = await fetch(`/api/incidents/${incidentId}/updates`, {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ message, author: author || undefined }),
+				});
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data.error || res.statusText);
+				flash('Update posted');
+				setTimeout(() => location.reload(), 600);
+			} catch (err) {
+				flash(`Failed: ${err.message}`, true);
+				btn.disabled = false; btn.textContent = 'Post update';
+			}
+		});
+		document.getElementById('resolve-btn')?.addEventListener('click', async () => {
+			if (!confirm('Mark this incident as resolved?')) return;
+			const btn = document.getElementById('resolve-btn');
+			btn.disabled = true; btn.textContent = 'Resolving…';
+			try {
+				const res = await fetch(`/api/incidents/${incidentId}/resolve`, { method: 'POST' });
+				const data = await res.json().catch(() => ({}));
+				if (!res.ok) throw new Error(data.error || res.statusText);
+				flash('Incident resolved');
+				setTimeout(() => location.reload(), 600);
+			} catch (err) {
+				flash(`Failed: ${err.message}`, true);
+				btn.disabled = false; btn.textContent = 'Resolve incident';
+			}
+		});
+	</script>
+</Base>

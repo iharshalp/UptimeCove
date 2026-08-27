@@ -1,0 +1,38 @@
+---
+interface Props {
+	title?: string;
+	description?: string;
+}
+const { title = 'UptimeCove — Edge-native uptime monitoring & status pages', description = 'Free, open-source uptime monitoring that runs entirely on your own Cloudflare account. Zero-cost infrastructure, beautiful status pages.' } = Astro.props;
+import '../styles/global.css';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+		<meta name="description" content={description} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<title>{title}</title>
+	</head>
+	<body class="min-h-screen">
+		<slot />
+	</body>
+</html>
+
+<style is:global>
+	@keyframes pulse-ring {
+		0% { box-shadow: 0 0 0 0 currentColor; opacity: 0.45; }
+		70% { box-shadow: 0 0 0 7px transparent; opacity: 0; }
+		100% { box-shadow: 0 0 0 0 transparent; opacity: 0; }
+	}
+	.pulse-dot {
+		animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	}
+</style>

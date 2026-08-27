@@ -1,0 +1,197 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import StatusDot from '../components/StatusDot.astro';
+import Sparkline from '../components/Sparkline.astro';
+
+// Prefilled demo data — identical layout to the real dashboard, read-only.
+const stats = { activeMonitors: 3, checks24h: 4320, statusPages: 1, incidents: 2, globalUptime: 99.45 };
+
+const wave = (seed: number, base = 120, amp = 30) =>
+	Array.from({ length: 30 }, (_, i) => base + Math.round(Math.sin(i * 0.6 + seed) * amp + Math.cos(i * 0.9 + seed) * (amp / 2)));
+
+const enriched = [
+	{ id: 1, name: 'API', url: 'https://api.uptimecove.com/health', enabled: 1, status: 'up' as const, statusText: 'Up for 12d', statusCls: 'text-emerald-600', uptime: '99.98', avgMs: 142, points: wave(1, 130, 28) },
+	{ id: 2, name: 'Web App', url: 'https://app.uptimecove.com', enabled: 1, status: 'up' as const, statusText: 'Up for 3d', statusCls: 'text-emerald-600', uptime: '99.94', avgMs: 246, points: wave(4, 220, 40) },
+	{ id: 3, name: 'CDN', url: 'https://cdn.uptimecove.com', enabled: 1, status: 'down' as const, statusText: 'Down for 8m', statusCls: 'text-red-500', uptime: '98.44', avgMs: 0, points: [...wave(7, 70, 16).slice(0, 23), 0, 0, 0, 0, 0, 0, 0] },
+];
+const avatarColors = ['bg-blue-50 text-blue-600', 'bg-violet-50 text-violet-600', 'bg-emerald-50 text-emerald-600'];
+
+const recentIncidents = [
+	{ id: 101, name: 'CDN', url: 'https://cdn.uptimecove.com', cause: 'Timeout after 5000ms', at: 'Today, 14:32', duration: 'Ongoing for 8 min', resolved: false },
+	{ id: 102, name: 'API', url: 'https://api.uptimecove.com/health', cause: 'Expected 200, got 502', at: 'Yesterday, 09:11', duration: '4 min', resolved: true },
+];
+---
+
+<DashboardLayout title="Demo Dashboard — UptimeCove" active="dashboard">
+	<div class="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+		<!-- Demo banner -->
+		<div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3">
+			<p class="text-sm font-medium text-amber-800">
+				<span class="mr-2 rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-800">DEMO</span>
+				Read-only demo with sample data. Fork &amp; deploy your own private instance in minutes.
+			</p>
+			<a href="https://github.com/iharshalp/UptimeCove" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white hover:bg-slate-800">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.72-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.15 1.18a10.9 10.9 0 0 1 5.74 0c2.19-1.49 3.15-1.18 3.15-1.18.62 1.59.23 2.76.11 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.77 1.05.77 2.12 0 1.53-.01 2.76-.01 3.14 0 .3.2.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+				Fork on GitHub
+			</a>
+		</div>
+
+		<!-- Header -->
+		<div class="flex flex-wrap items-center justify-between gap-4">
+			<div>
+				<h1 class="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+				<p class="mt-0.5 text-sm text-slate-500">{stats.activeMonitors} active monitors · checked from the edge every minute</p>
+			</div>
+			<button disabled class="inline-flex cursor-not-allowed items-center gap-2 rounded-full bg-blue-600/60 px-5 py-2.5 text-sm font-semibold text-white" title="Demo — read only">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M13 2L4.5 12.5H11l-1 8.5L19.5 10H12l1-8z"/></svg>
+				Run checks now
+			</button>
+		</div>
+
+		<!-- Stat cards -->
+		<div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+			{[
+				{ label: 'Activity Monitoring', value: String(stats.checks24h), icon: 'M13 2L4.5 12.5H11l-1 8.5L19.5 10H12l1-8z', chip: 'bg-orange-50 text-orange-500' },
+				{ label: 'Status Pages', value: String(stats.statusPages), icon: 'M4 19V9m5 10V5m5 14v-7m5 7V8', chip: 'bg-blue-50 text-blue-600' },
+				{ label: 'Number of Incidents', value: String(stats.incidents), icon: 'M12 9v4m0 4h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6A2 2 0 0 0 22 18L13.7 3.9a2 2 0 0 0-3.4 0z', chip: 'bg-red-50 text-red-500' },
+				{ label: 'Global Uptime', value: `${stats.globalUptime.toFixed(2)}%`, icon: 'M20 6L9 17l-5-5', chip: 'bg-emerald-50 text-emerald-600' },
+			].map((s) => (
+				<div class="card p-6">
+					<div class="text-sm font-medium text-slate-500">{s.label}</div>
+					<div class="mt-4 flex items-center gap-3">
+						<span class={`flex size-10 shrink-0 items-center justify-center rounded-full ${s.chip}`}>
+							<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d={s.icon} /></svg>
+						</span>
+						<span class="truncate text-2xl font-bold text-slate-900">{s.value}</span>
+					</div>
+				</div>
+			))}
+		</div>
+
+		<!-- Add monitor (disabled in demo) -->
+		<section class="card mt-6 p-6 sm:p-7">
+			<div class="flex items-center justify-between">
+				<h2 class="font-semibold text-slate-900">Add a monitor</h2>
+				<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Disabled in demo</span>
+			</div>
+			<div class="mt-4 grid gap-3 sm:grid-cols-[1fr_1.4fr_auto_auto]">
+				<input disabled placeholder="My API (display name)" class="cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-400" />
+				<input disabled placeholder="https://api.example.com/health" class="cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-sm text-slate-400" />
+				<select disabled class="cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-400"><option>Every minute</option></select>
+				<button disabled class="cursor-not-allowed rounded-xl bg-blue-600/60 px-6 py-2.5 text-sm font-semibold text-white">Add</button>
+			</div>
+		</section>
+
+		<!-- Monitoring -->
+		<section id="monitors" class="mt-10">
+			<div class="flex items-center justify-between">
+				<h2 class="text-lg font-bold text-slate-900">Monitoring</h2>
+				<a href="/status/default" class="text-sm font-semibold text-blue-600 hover:text-blue-700">See All</a>
+			</div>
+
+			<div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+				{enriched.map((m, idx) => (
+					<div class="card flex flex-col p-5 transition hover:shadow-md">
+						<div class="flex items-start justify-between gap-3">
+							<div class="flex min-w-0 items-center gap-3">
+								<span class={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarColors[idx % avatarColors.length]}`}>
+									{m.name.charAt(0).toUpperCase()}
+								</span>
+								<div class="min-w-0">
+									<div class="block truncate font-semibold text-slate-900">{m.name}</div>
+									<span class="block truncate font-mono text-xs text-slate-400">{m.url}</span>
+								</div>
+							</div>
+							<div class="flex shrink-0 items-center gap-1">
+								<span class="cursor-not-allowed rounded-lg p-2 text-slate-300" title="Demo — read only">
+									<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+								</span>
+								<span class="cursor-not-allowed rounded-lg p-2 text-slate-300" title="Demo — read only">
+									<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4v16m4-16v16" /></svg>
+								</span>
+								<span class="cursor-not-allowed rounded-lg p-2 text-slate-300" title="Demo — read only">
+									<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18m-2 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"/></svg>
+								</span>
+							</div>
+						</div>
+						<div class="mt-4">
+							<div class="text-xs font-medium text-slate-400">Current status</div>
+							<div class={`mt-0.5 text-sm font-semibold ${m.statusCls}`}>{m.statusText}</div>
+						</div>
+						<div class="mt-3 grid grid-cols-2 gap-3">
+							<div>
+								<div class="text-xs font-medium text-slate-400">Total Uptime</div>
+								<div class="text-sm font-bold text-slate-800">{m.uptime}%</div>
+							</div>
+							<div>
+								<div class="text-xs font-medium text-slate-400">Response time</div>
+								<div class="text-sm font-bold text-slate-800">{m.avgMs ? `${m.avgMs} ms` : '—'}</div>
+							</div>
+						</div>
+						<div class="mt-3">
+							<Sparkline points={m.points} height={80} />
+							<div class="mt-1 flex justify-between text-[10px] font-medium text-slate-300">
+								<span>older</span><span>latest check</span>
+							</div>
+						</div>
+					</div>
+				))}
+			</div>
+		</section>
+
+		<!-- Latest Alerts -->
+		<section class="mt-10">
+			<div class="flex items-center justify-between">
+				<h2 class="text-lg font-bold text-slate-900">Latest Alerts</h2>
+				<a href="/status/default" class="text-sm font-semibold text-blue-600 hover:text-blue-700">See All</a>
+			</div>
+			<div class="card mt-4 overflow-x-auto">
+				<table class="w-full min-w-[640px] text-left text-sm">
+					<thead>
+						<tr class="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-400">
+							<th class="px-6 py-4">Check</th>
+							<th class="px-6 py-4">Time</th>
+							<th class="px-6 py-4">Duration</th>
+							<th class="px-6 py-4">Status</th>
+							<th class="px-6 py-4"></th>
+						</tr>
+					</thead>
+					<tbody>
+						{recentIncidents.map((inc) => (
+							<tr class="border-b border-slate-50 last:border-0">
+								<td class="px-6 py-4">
+									<div class="flex items-center gap-3">
+										<StatusDot status={inc.resolved ? 'up' : 'down'} size="sm" pulse={false} />
+										<div>
+											<div class="font-semibold text-slate-800">{inc.name}</div>
+											<div class="font-mono text-xs text-slate-400">{inc.url}</div>
+										</div>
+									</div>
+								</td>
+								<td class="whitespace-nowrap px-6 py-4 text-slate-500">{inc.at}</td>
+								<td class="whitespace-nowrap px-6 py-4 text-slate-500">{inc.duration}</td>
+								<td class="px-6 py-4">
+									<span class={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${inc.resolved ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+										{inc.resolved ? 'Resolved' : 'Ongoing'}
+									</span>
+								</td>
+								<td class="px-6 py-4 text-right"><span class="cursor-not-allowed font-semibold text-slate-300">Details</span></td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<!-- Self-host CTA -->
+		<div class="mt-10 rounded-3xl border border-slate-200 bg-white p-6 text-center sm:p-8">
+			<h3 class="text-lg font-bold text-slate-900">This is a read-only demo</h3>
+			<p class="mx-auto mt-1 max-w-xl text-sm text-slate-500">Deploy your own private UptimeCove on Cloudflare — your data, your token, free tier. Everything you see here works fully in your own instance.</p>
+			<div class="mt-4 flex flex-wrap justify-center gap-3">
+				<a href="https://github.com/iharshalp/UptimeCove" target="_blank" rel="noopener" class="rounded-full bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Fork &amp; Self-Host</a>
+				<a href="/" class="rounded-full border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">← Back to home</a>
+			</div>
+			<p class="mt-3 text-xs text-slate-400">Open Source • MIT • <a href="https://github.com/iharshalp" class="hover:text-slate-600">iharshalp</a></p>
+		</div>
+	</div>
+</DashboardLayout>

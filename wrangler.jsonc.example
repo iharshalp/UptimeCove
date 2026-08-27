@@ -1,0 +1,52 @@
+{
+	// -------------------------------------------------------------------------
+	// Copy this file to `wrangler.jsonc` and fill in your own resource IDs.
+	//   cp wrangler.jsonc.example wrangler.jsonc
+	//
+	// The real `wrangler.jsonc` is gitignored so your account-specific IDs stay
+	// out of version control. These IDs are NOT secrets (they cannot be used
+	// without your Cloudflare API token), but keeping them local avoids other
+	// people accidentally pointing at resources that don't exist in their account.
+	//
+	// Create the resources, then paste the printed IDs below:
+	//   npx wrangler d1 create uptimecove-db
+	//   npx wrangler kv namespace create CACHE
+	// -------------------------------------------------------------------------
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"compatibility_date": "2026-08-25",
+	"compatibility_flags": [
+		"global_fetch_strictly_public"
+	],
+	"name": "uptimecove",
+	"main": "src/worker.ts",
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "uptimecove-db",
+			"migrations_dir": "./migrations",
+			"database_id": "YOUR_D1_DATABASE_ID"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "CACHE",
+			"id": "YOUR_KV_NAMESPACE_ID"
+		}
+	],
+	"triggers": {
+		"crons": [
+			"* * * * *",
+			"30 3 * * *"
+		]
+	},
+	"vars": {
+		"PUBLIC_SITE_NAME": "UptimeCove"
+	}
+}

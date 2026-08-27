@@ -1,0 +1,268 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import StatusDot from '../components/StatusDot.astro';
+import Sparkline from '../components/Sparkline.astro';
+import { env } from 'cloudflare:workers';
+import { listMonitors, getDailyUptime, getRecentChecks, getRecentIncidents, getDashboardStats, getMonitorUptime, getMonitorLatencyPercentiles } from '../lib/queries';
+import type { Monitor } from '../types';
+
+const monitors = await listMonitors(env);
+const stats = await getDashboardStats(env);
+const recentIncidents = await getRecentIncidents(env, 8);
+
+const enriched = await Promise.all(
+	monitors.map(async (m: Monitor) => {
+		const [days, recent, incidents, uptimePct, latency] = await Promise.all([
+			getDailyUptime(env, m.id),
+			getRecentChecks(env, m.id, 30),
+			env.DB.prepare(`SELECT started_at, resolved_at FROM incidents WHERE monitor_id = ? ORDER BY started_at DESC LIMIT 1`).bind(m.id).first<{ started_at: number; resolved_at: number | null }>(),
+			getMonitorUptime(env, m.id, 30),
+			getMonitorLatencyPercentiles(env, m.id, 7),
+		]);
+		const avgMs = recent.length > 0 ? Math.round(recent.reduce((a, c) => a + (c.response_time_ms ?? 0), 0) / recent.length) : null;
+		const lastIncident = incidents ?? null;
+		return { monitor: m, days, recent, uptimePct, avgMs, latency, lastIncident };
+	})
+);
+
+const globalUptime = stats.globalUptimePct;
+
+function since(ts: number): string {
+	const s = Math.max(1, Math.floor(Date.now() / 1000) - ts);
+	if (s < 60) return `${s}s`;
+	if (s < 3600) return `${Math.floor(s / 60)}m`;
+	if (s < 86400) return `${Math.floor(s / 3600)}h`;
+	return `${Math.floor(s / 86400)}d`;
+}
+function fmtUnix(ts: number): string {
+	return new Date(ts * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function statusLine(m: Monitor, lastIncident: { started_at: number; resolved_at: number | null } | null): { text: string; cls: string } {
+	const now = Math.floor(Date.now() / 1000);
+	if (m.current_status === 'down') {
+		const start = lastIncident && !lastIncident.resolved_at ? lastIncident.started_at : m.last_checked_at ?? now;
+		return { text: `Down for ${since(start)}`, cls: 'text-red-500' };
+	}
+	if (m.current_status === 'paused') return { text: 'Paused', cls: 'text-slate-400' };
+	if (m.current_status === 'pending') return { text: 'Waiting for first check', cls: 'text-amber-500' };
+	const upSince = lastIncident?.resolved_at ?? m.created_at;
+	return { text: `Up for ${since(upSince)}`, cls: 'text-emerald-600' };
+}
+const avatarColors = ['bg-blue-50 text-blue-600', 'bg-violet-50 text-violet-600', 'bg-emerald-50 text-emerald-600', 'bg-amber-50 text-amber-600', 'bg-rose-50 text-rose-600'];
+---
+
+<DashboardLayout title="Dashboard — UptimeCove" active="dashboard">
+			<div class="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+				<!-- Header -->
+				<div class="flex flex-wrap items-center justify-between gap-4">
+					<div>
+						<h1 class="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+						<p class="mt-0.5 text-sm text-slate-500">{stats.activeMonitors} active monitor{stats.activeMonitors === 1 ? '' : 's'} · checked from the edge every minute</p>
+					</div>
+					<button id="run-now" class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-600/25 transition hover:bg-blue-700">
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M13 2L4.5 12.5H11l-1 8.5L19.5 10H12l1-8z"/></svg>
+						Run checks now
+					</button>
+				</div>
+
+				<!-- Stat cards -->
+				<div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+					{[
+						{ label: 'Activity Monitoring', value: String(stats.checks24h), icon: 'M13 2L4.5 12.5H11l-1 8.5L19.5 10H12l1-8z', chip: 'bg-orange-50 text-orange-500' },
+						{ label: 'Status Pages', value: String(stats.statusPages), icon: 'M4 19V9m5 10V5m5 14v-7m5 7V8', chip: 'bg-blue-50 text-blue-600' },
+						{ label: 'Number of Incidents', value: String(stats.incidents), icon: 'M12 9v4m0 4h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6A2 2 0 0 0 22 18L13.7 3.9a2 2 0 0 0-3.4 0z', chip: 'bg-red-50 text-red-500' },
+						{ label: 'Global Uptime', value: globalUptime === null ? '—' : `${globalUptime.toFixed(2)}%`, icon: 'M20 6L9 17l-5-5', chip: 'bg-emerald-50 text-emerald-600' },
+					].map((s) => (
+						<div class="card p-6">
+							<div class="text-sm font-medium text-slate-500">{s.label}</div>
+							<div class="mt-4 flex items-center gap-3">
+								<span class={`flex size-10 shrink-0 items-center justify-center rounded-full ${s.chip}`}>
+									<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d={s.icon} /></svg>
+								</span>
+								<span class="truncate text-2xl font-bold text-slate-900">{s.value}</span>
+							</div>
+						</div>
+					))}
+				</div>
+
+				<div id="flash" class="mt-5 hidden rounded-2xl border border-blue-100 bg-blue-50 px-5 py-3 text-sm font-medium text-blue-700"></div>
+
+				<!-- Add monitor -->
+				<section class="card mt-6 p-6 sm:p-7">
+					<h2 class="font-semibold text-slate-900">Add a monitor</h2>
+					<form method="POST" action="/api/monitors" class="mt-4 grid gap-3 sm:grid-cols-[1fr_1.4fr_auto_auto]">
+						<label class="sr-only" for="monitor-name">Monitor name</label>
+						<input id="monitor-name" required name="name" placeholder="My API (display name)" maxlength="120" autocomplete="off"
+							class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+						<label class="sr-only" for="monitor-url">Monitor URL</label>
+						<input id="monitor-url" required name="url" type="url" placeholder="https://api.example.com/health" inputmode="url" autocomplete="url"
+							class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 font-mono text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+						<select name="interval_seconds"
+							class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 focus:border-blue-400 focus:outline-none">
+							<option value="60">Every minute</option>
+							<option value="300">Every 5 min</option>
+							<option value="900">Every 15 min</option>
+							<option value="3600">Hourly</option>
+						</select>
+						<button class="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-600/25 transition hover:bg-blue-700">Add</button>
+					</form>
+				</section>
+
+				<!-- Monitoring -->
+				<section id="monitors" class="mt-10">
+					<div class="flex items-center justify-between">
+						<h2 class="text-lg font-bold text-slate-900">Monitoring</h2>
+						<a href="/status/default" class="text-sm font-semibold text-blue-600 hover:text-blue-700">See All</a>
+					</div>
+
+					{enriched.length === 0 && (
+						<div class="card mt-4 p-12 text-center">
+							<p class="font-semibold text-slate-700">No monitors yet.</p>
+							<p class="mt-1 text-sm text-slate-500">Add your first URL above — the first check runs within a minute.</p>
+						</div>
+					)}
+
+					<div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+						{enriched.map(({ monitor: m, recent, uptimePct, avgMs, lastIncident }, idx) => {
+							const sl = statusLine(m, lastIncident);
+							return (
+								<div class="card flex flex-col p-5 transition hover:shadow-md" data-monitor={m.id}>
+									<div class="flex items-start justify-between gap-3">
+										<div class="flex min-w-0 items-center gap-3">
+											<a href={`/dashboard/monitors/${m.id}`} class={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarColors[idx % avatarColors.length]}`}>
+												{m.name.charAt(0).toUpperCase()}
+											</a>
+											<div class="min-w-0">
+												<a href={`/dashboard/monitors/${m.id}`} class="block truncate font-semibold text-slate-900 hover:text-blue-600">{m.name}</a>
+												<a href={m.url} target="_blank" rel="noopener noreferrer" class="block truncate font-mono text-xs text-slate-400 hover:text-blue-600">{m.url}</a>
+											</div>
+										</div>
+										<div class="flex shrink-0 items-center gap-1">
+											<a href={`/dashboard/monitors/${m.id}`} class="rounded-lg p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600" aria-label="Edit monitor" title="Edit">
+												<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+											</a>
+											<button data-action={`/api/monitors/${m.id}/toggle`} data-id={m.id} class="toggle-btn rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700" aria-label={m.enabled ? 'Pause monitor' : 'Resume monitor'} title={m.enabled ? 'Pause' : 'Resume'}>
+												<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d={m.enabled ? 'M10 4v16m4-16v16' : 'M6 4l14 8-14 8V4z'} /></svg>
+											</button>
+											<button data-action={`/api/monitors/${m.id}/delete`} data-id={m.id} class="delete-btn rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500" aria-label="Delete monitor" title="Delete">
+												<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18m-2 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2"/></svg>
+											</button>
+										</div>
+									</div>
+									<div class="mt-4">
+										<div class="text-xs font-medium text-slate-400">Current status</div>
+										<div class={`mt-0.5 text-sm font-semibold ${sl.cls}`}>{sl.text}</div>
+									</div>
+									<div class="mt-3 grid grid-cols-2 gap-3">
+										<div>
+											<div class="text-xs font-medium text-slate-400">Total Uptime</div>
+											<div class="text-sm font-bold text-slate-800">{uptimePct === null ? '—' : `${uptimePct.toFixed(1)}%`}</div>
+										</div>
+										<div>
+											<div class="text-xs font-medium text-slate-400">Response time</div>
+											<div class="text-sm font-bold text-slate-800">{avgMs === null ? '—' : `${avgMs} ms`}</div>
+										</div>
+									</div>
+									<div class="mt-3">
+										<Sparkline points={recent.map((c) => c.response_time_ms)} height={80} />
+										<div class="mt-1 flex justify-between text-[10px] font-medium text-slate-300">
+											<span>older</span><span>latest check</span>
+										</div>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</section>
+
+				<!-- Latest Alerts -->
+				<section class="mt-10">
+					<div class="flex items-center justify-between">
+						<h2 class="text-lg font-bold text-slate-900">Latest Alerts</h2>
+						<a href="/status/default" class="text-sm font-semibold text-blue-600 hover:text-blue-700">See All</a>
+					</div>
+					<div class="card mt-4 overflow-x-auto">
+						{recentIncidents.length === 0 ? (
+							<div class="p-10 text-center text-sm text-slate-400">No incidents recorded — smooth sailing.</div>
+						) : (
+							<table class="w-full min-w-[640px] text-left text-sm">
+								<thead>
+									<tr class="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-400">
+										<th class="px-6 py-4">Check</th>
+										<th class="px-6 py-4">Time</th>
+										<th class="px-6 py-4">Duration</th>
+										<th class="px-6 py-4">Status</th>
+										<th class="px-6 py-4"></th>
+									</tr>
+								</thead>
+								<tbody>
+									{recentIncidents.map((inc) => {
+										const dur = Math.max(1, Math.round(((inc.resolved_at ?? Math.floor(Date.now() / 1000)) - inc.started_at) / 60));
+										return (
+											<tr class="border-b border-slate-50 last:border-0">
+												<td class="px-6 py-4">
+													<div class="flex items-center gap-3">
+														<StatusDot status={inc.resolved_at ? 'up' : 'down'} size="sm" pulse={false} />
+														<div>
+															<div class="font-semibold text-slate-800">{inc.name}</div>
+															<div class="font-mono text-xs text-slate-400">{inc.url}</div>
+														</div>
+													</div>
+												</td>
+												<td class="whitespace-nowrap px-6 py-4 text-slate-500">{fmtUnix(inc.started_at)}</td>
+												<td class="whitespace-nowrap px-6 py-4 text-slate-500">{inc.resolved_at ? `${dur} min` : `Ongoing for ${dur} min`}</td>
+												<td class="px-6 py-4">
+													<span class={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${inc.resolved_at ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+														{inc.resolved_at ? 'Resolved' : 'Ongoing'}
+													</span>
+												</td>
+												<td class="px-6 py-4 text-right"><a href={`/dashboard/incidents/${inc.id}`} class="font-semibold text-blue-600 hover:text-blue-700">Details</a></td>
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						)}
+					</div>
+				</section>
+			</div>
+	<script>
+		function flash(msg: string) {
+			const el = document.getElementById('flash')!;
+			el.textContent = msg;
+			el.classList.remove('hidden');
+			setTimeout(() => el.classList.add('hidden'), 3500);
+		}
+		async function post(action: string, body: Record<string, unknown>): Promise<any> {
+			const res = await fetch(action, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+			if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as any).error ?? res.statusText);
+			return res.status === 204 ? {} : res.json();
+		}
+		document.querySelectorAll<HTMLElement>('.toggle-btn').forEach((btn) =>
+			btn.addEventListener('click', async () => {
+				if (!confirm('Pause or resume this monitor?')) return;
+				try { await post(btn.dataset.action!, { id: Number(btn.dataset.id) }); location.reload(); }
+				catch (e) { flash(`Failed: ${(e as Error).message}`); }
+			})
+		);
+		document.querySelectorAll<HTMLElement>('.delete-btn').forEach((btn) =>
+			btn.addEventListener('click', async () => {
+				if (!confirm('Delete this monitor and all its history?')) return;
+				try { await post(btn.dataset.action!, { id: Number(btn.dataset.id) }); location.reload(); }
+				catch (e) { flash(`Failed: ${(e as Error).message}`); }
+			})
+		);
+		document.getElementById('run-now')?.addEventListener('click', async function (this: HTMLElement) {
+			this.textContent = 'Running…';
+			try {
+				const r = await post('/api/checks/run', {});
+				flash(`Checked ${r.checked} monitor(s)`);
+			} catch (e) { flash(`Failed: ${(e as Error).message}`); }
+			setTimeout(() => location.reload(), 800);
+		});
+	</script>
+</DashboardLayout>
