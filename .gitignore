@@ -33,6 +33,7 @@ cookies.txt
 cj*.txt
 homepage.html
 coverage/
+commit-msg.txt
 
 # editor / AI artifacts (do not publish)
 .vscode/
