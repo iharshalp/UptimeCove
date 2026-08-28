@@ -1,0 +1,84 @@
+---
+// Site-wide footer. Kept in one place so legal links stay reachable (and
+// consistent) from every public page — search engines and app stores both
+// expect policy pages to be linked, not orphaned.
+const year = new Date().getFullYear();
+
+const product = [
+	{ href: '/demo', label: 'Demo' },
+	{ href: '/docs', label: 'API Docs' },
+	{ href: '/status/default', label: 'Status Page' },
+];
+
+const project = [
+	{ href: 'https://github.com/iharshalp/UptimeCove', label: 'GitHub', external: true },
+	{ href: 'https://github.com/iharshalp/UptimeCove/issues', label: 'Issues', external: true },
+	{ href: 'https://github.com/iharshalp/UptimeCove/blob/main/CONTRIBUTING.md', label: 'Contributing', external: true },
+];
+
+const legal = [
+	{ href: '/about', label: 'About' },
+	{ href: '/contact', label: 'Contact' },
+	{ href: '/privacy', label: 'Privacy Policy' },
+	{ href: '/terms', label: 'Terms of Service' },
+];
+---
+
+<footer class="border-t border-slate-200 bg-white">
+	<div class="mx-auto max-w-6xl px-6 py-12">
+		<div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+			<div>
+				<a href="/" class="flex items-center gap-2 font-bold text-slate-900">
+					<span class="flex size-7 items-center justify-center rounded-lg bg-blue-600">
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>
+					</span>
+					UptimeCove
+				</a>
+				<p class="mt-3 text-sm leading-relaxed text-slate-500">
+					Open-source uptime monitoring and status pages that run entirely on your own Cloudflare account.
+				</p>
+			</div>
+
+			<div>
+				<h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Product</h2>
+				<ul class="mt-3 space-y-2 text-sm">
+					{product.map((link) => (
+						<li><a href={link.href} class="text-slate-600 transition hover:text-blue-600">{link.label}</a></li>
+					))}
+				</ul>
+			</div>
+
+			<div>
+				<h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Project</h2>
+				<ul class="mt-3 space-y-2 text-sm">
+					{project.map((link) => (
+						<li>
+							<a href={link.href} target="_blank" rel="noopener noreferrer" class="text-slate-600 transition hover:text-blue-600">{link.label}</a>
+						</li>
+					))}
+				</ul>
+			</div>
+
+			<div>
+				<h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Legal</h2>
+				<ul class="mt-3 space-y-2 text-sm">
+					{legal.map((link) => (
+						<li><a href={link.href} class="text-slate-600 transition hover:text-blue-600">{link.label}</a></li>
+					))}
+				</ul>
+			</div>
+		</div>
+
+		<div class="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-6 text-sm text-slate-500 sm:flex-row">
+			<span>© {year} UptimeCove · <a href="https://github.com/iharshalp/UptimeCove/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="font-medium text-slate-700 hover:text-blue-600">MIT licensed</a></span>
+			<span>
+				Built with
+				<a href="https://astro.build" target="_blank" rel="noopener noreferrer" class="font-medium text-slate-700 hover:text-blue-600">Astro</a>
+				+
+				<a href="https://workers.cloudflare.com" target="_blank" rel="noopener noreferrer" class="font-medium text-slate-700 hover:text-blue-600">Cloudflare</a>
+				by
+				<a href="https://github.com/iharshalp" target="_blank" rel="noopener noreferrer" class="font-medium text-slate-700 hover:text-blue-600">@iharshalp</a>
+			</span>
+		</div>
+	</div>
+</footer>

@@ -51,9 +51,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	context.locals.actor = auth.actor;
 	context.locals.apiKey = auth.apiKey;
 
+	// Routes that must stay reachable without credentials:
+	//  - /api/status/*          public status page JSON + RSS
+	//  - /api/auth/*            login/logout, which is how you get credentials
+	//  - /api/badge/*           SVG badges embedded in READMEs by anonymous readers
+	//  - /api/heartbeat/*/ping  dead-man's-switch pings; the URL itself is the
+	//                           secret, and a cron job cannot carry a session cookie
 	const isPublicApi =
-		(url.pathname === '/api/status' || url.pathname.startsWith('/api/status/')) ||
-		url.pathname.startsWith('/api/auth/');
+		url.pathname === '/api/status' ||
+		url.pathname.startsWith('/api/status/') ||
+		url.pathname.startsWith('/api/auth/') ||
+		url.pathname.startsWith('/api/badge/') ||
+		/^\/api\/heartbeat\/[^/]+\/ping\/?$/.test(url.pathname);
 	const isProtected =
 		url.pathname.startsWith('/dashboard') ||
 		(url.pathname.startsWith('/api/') && !isPublicApi);

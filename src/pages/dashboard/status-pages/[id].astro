@@ -19,7 +19,7 @@ const unselected = monitors.filter((m) => !idSet.has(m.id));
 const orderedSelected = selected; // already in DB order
 ---
 
-<Base title={`Edit ${page.title} — UptimeCove`}>
+<Base title={`Edit ${page.title} — UptimeCove`} noindex>
 	<div class="min-h-screen">
 		<aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col rounded-r-3xl bg-white shadow-sm shadow-slate-900/5 lg:flex">
 			<a href="/" class="flex items-center gap-2.5 px-7 pt-7 font-bold tracking-tight text-slate-900">

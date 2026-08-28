@@ -1,0 +1,178 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+
+// Written against what the code actually does. If you change data handling —
+// new cookies, new third-party requests, new stored fields — update this page
+// in the same commit.
+const UPDATED = '2026-08-28';
+---
+
+<PageLayout
+	title="Privacy Policy"
+	description="How UptimeCove handles data: no analytics, no tracking cookies, and a self-hosted architecture where your monitoring data never leaves your own Cloudflare account."
+	heading="Privacy Policy"
+	tagline="Short version: this site runs no analytics and sets no tracking cookies, and a self-hosted UptimeCove sends your monitoring data nowhere but your own Cloudflare account."
+	updated={UPDATED}
+>
+	<section class="card p-6">
+		<h2>1. Two different things called "UptimeCove"</h2>
+		<p>This distinction decides who is responsible for your data, so it comes first:</p>
+		<ul>
+			<li>
+				<strong>The software.</strong> UptimeCove is an open-source project you download and deploy to
+				your own Cloudflare account. It has no phone-home, no licence check and no telemetry. When you
+				run it, <strong>you</strong> are the data controller for everything inside your instance — this
+				policy cannot and does not speak for your deployment.
+			</li>
+			<li>
+				<strong>This website</strong> (the marketing pages, the docs and the public demo). That's the
+				only thing the sections below describe.
+			</li>
+		</ul>
+		<p>
+			If you reached a status page hosted by some other company or person, they run that instance. Ask
+			them for their privacy policy — not us.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>2. What this website collects</h2>
+
+		<h3>Analytics: none</h3>
+		<p>
+			There is no Google Analytics, no Plausible, no PostHog, no Segment, no session recording and no
+			advertising pixel anywhere on this site. Web fonts are self-hosted, so loading a page does not
+			contact a font CDN either.
+		</p>
+
+		<h3>Cookies: one, and only if you log in</h3>
+		<p>
+			A single cookie named <code>uc_session</code> is set when an administrator signs in to a
+			dashboard. It holds an opaque session identifier — no personal data is encoded in it. It is
+			<code>HttpOnly</code>, <code>SameSite=Lax</code>, <code>Secure</code> in production, and expires
+			after 7 days or when the session is revoked.
+		</p>
+		<p>
+			It is strictly necessary for authentication, is never used for tracking or profiling, and is
+			never shared. Browsing the public pages sets no cookies at all, which is why you don't see a
+			consent banner.
+		</p>
+
+		<h3>Server logs</h3>
+		<p>
+			This site is hosted on Cloudflare Workers. Like any web host, Cloudflare processes request
+			metadata — IP address, user agent, timestamp, requested URL — to route traffic and block abuse.
+			That processing is governed by
+			<a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare's privacy policy</a>.
+			We do not build profiles from it or retain it in our own database.
+		</p>
+
+		<h3>Third-party requests</h3>
+		<p>
+			The landing page embeds a GitHub star-count badge from <code>img.shields.io</code>. Loading that
+			image discloses your IP address and user agent to shields.io, the same as any other remote image
+			would. It sets no cookies. No other third-party resource is requested by this site.
+		</p>
+
+		<h3>The demo dashboard</h3>
+		<p>
+			<a href="/demo">/demo</a> is populated with sample data and is read-only. Nothing you look at
+			there is submitted, stored or associated with you.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>3. What a self-hosted instance stores</h2>
+		<p>
+			Listed so you know exactly what lands in your own Cloudflare D1 database — and so self-hosters
+			can write an accurate policy for their own users. All of it stays in your account.
+		</p>
+		<ul>
+			<li><strong>Monitors and check results</strong> — URLs, HTTP status codes, response times, failure reasons.</li>
+			<li><strong>Incidents and updates</strong> — open/close timestamps, causes, any notes an operator writes.</li>
+			<li><strong>Status page subscribers</strong> — the email address someone submits to receive updates, the page they subscribed to, a verification flag and the signup timestamp. This is the only genuinely personal data the software collects by design.</li>
+			<li><strong>Notification channel config</strong> — recipient addresses and webhook URLs for email, webhook, Slack and Discord alerts.</li>
+			<li><strong>Sessions and API keys</strong> — hashed credentials and expiry timestamps. Raw tokens are never stored; keys are kept as SHA-256 hashes.</li>
+			<li><strong>Audit log</strong> — which actor performed which administrative action, and when.</li>
+			<li><strong>Heartbeat pings</strong> — if you enable heartbeat (dead-man's-switch) monitoring, the source IP of each ping is recorded alongside its timestamp so you can tell which job checked in.</li>
+		</ul>
+		<p>
+			Check history is pruned automatically by a daily scheduled task, and expired sessions are deleted
+			on the same run. Deleting a monitor or status page cascades to its related rows.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>4. Outbound requests the software makes</h2>
+		<p>Your instance reaches the network only to do the job you configured:</p>
+		<ul>
+			<li><strong>The endpoints you asked it to monitor.</strong> Your monitor's requests carry whatever headers you configured, so the target host sees your Worker's traffic.</li>
+			<li><strong>Notification providers you set up</strong> — your own SMTP/email provider, Slack, Discord, or your webhook endpoint. Incident details are sent to them because that is the point of an alert.</li>
+			<li><strong>Certificate and DNS lookups</strong> for SSL-expiry and domain checks, where enabled.</li>
+			<li><strong>Cloudflare Workers AI</strong>, only if you bind the optional <code>AI</code> binding for incident summaries. The prompt is processed by Cloudflare, not by any other AI vendor, and the feature is inert when the binding is absent.</li>
+		</ul>
+		<p>Nothing is ever sent to the maintainers of this project.</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>5. Legal bases and your rights</h2>
+		<p>
+			For this website, the processing above rests on legitimate interests (operating and securing a
+			site) and, for the session cookie, on it being strictly necessary to deliver a service you
+			explicitly requested by logging in. Subscriber emails in a self-hosted instance rest on the
+			consent that person gave when subscribing.
+		</p>
+		<p>
+			If you're in the UK, EEA, Switzerland, California or a comparable jurisdiction, you have rights
+			of access, rectification, erasure, restriction, portability and objection over personal data held
+			about you. Because the data lives in the instance you or your provider operates:
+		</p>
+		<ul>
+			<li><strong>Using someone's status page?</strong> Contact whoever runs it. Unsubscribe links in their emails remove you immediately.</li>
+			<li><strong>Running your own instance?</strong> You can service those requests directly against your D1 database.</li>
+			<li><strong>Something about this website?</strong> Use the <a href="/contact">contact page</a>.</li>
+		</ul>
+		<p>
+			We do not sell personal information, and we do not "share" it for cross-context behavioural
+			advertising as California defines those terms. There is nothing to opt out of.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>6. Children</h2>
+		<p>
+			UptimeCove is a developer tool and isn't directed at children under 13 (or under 16 where local
+			law sets that bar). We don't knowingly collect their data.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>7. Security</h2>
+		<p>
+			Sessions and API keys are stored hashed, monitor URLs and redirect targets are validated to block
+			requests to internal addresses, and the dashboard and write APIs sit behind authentication. No
+			system is perfectly secure, and this project is young — the
+			<a href="https://github.com/iharshalp/UptimeCove/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">security policy</a>
+			describes the current scope and how to report a vulnerability privately.
+		</p>
+		<p>
+			If you deploy UptimeCove, treat <code>ADMIN_TOKEN</code>, <code>.dev.vars</code> and your remote
+			D1/KV state as production secrets.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>8. Changes</h2>
+		<p>
+			Material changes to this page will be reflected in the "last updated" date above. Because the
+			site is open source, the full revision history is public in the
+			<a href="https://github.com/iharshalp/UptimeCove" target="_blank" rel="noopener noreferrer">repository</a> —
+			you can diff any change yourself rather than take our word for it.
+		</p>
+		<p>
+			This page describes how the software behaves and is written to be plain and accurate. It is not
+			legal advice; if you deploy UptimeCove in a regulated setting, have your own counsel review your
+			obligations.
+		</p>
+	</section>
+</PageLayout>

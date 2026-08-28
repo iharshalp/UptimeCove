@@ -35,7 +35,7 @@ Self-hosted • Free tier • D1 + Workers • Astro • Tailwind • MIT • No
 
 |  | UptimeCove (Self-Hosted) | UptimeRobot / Statuspage |
 |---|---|---|
-| **Cost** | $0 on Cloudflare free tier | $29–$29/mo |
+| **Cost** | $0 on Cloudflare free tier | from $29/mo |
 | **Data** | Your D1, your KV | Their DB |
 | **Checks** | Edge, per-minute, claimed | Central |
 | **Status Page** | `/status/default` + JSON + RSS + badge | Hosted |
@@ -93,16 +93,22 @@ Self-hosted • Free tier • D1 + Workers • Astro • Tailwind • MIT • No
 
 ## 🚀 Quick Start — 30 Seconds
 
-**One command to try locally (no Cloudflare account needed for dev):**
+**Run it locally — no Cloudflare account needed for dev:**
 
 ```bash
 git clone https://github.com/iharshalp/UptimeCove.git
 cd UptimeCove
 npm install
-cp .dev.vars.example .dev.vars   # set a long random ADMIN_TOKEN
-npm run db:migrate               # auto-creates local D1 (0001..0004)
-npm run dev                      # http://localhost:4321
+cp wrangler.jsonc.example wrangler.jsonc  # placeholder IDs are fine for local dev
+cp .dev.vars.example .dev.vars            # set a long random ADMIN_TOKEN
+npm run db:migrate                        # creates local D1, applies 0001..0004
+npm run dev                               # http://localhost:4321
 ```
+
+> `wrangler.jsonc` is gitignored, so a fresh clone has no config until you copy the
+> example — `db:migrate` and `dev` both fail without it. The placeholder
+> `database_id` / KV `id` only matter for `--remote`; local D1 lives in
+> `.wrangler/state`. Fill in real IDs before you deploy (see below).
 
 **Open:**
 - `http://localhost:4321` — landing + **Demo** at `/demo`
@@ -115,17 +121,35 @@ npm run dev                      # http://localhost:4321
 ```bash
 npm run check        # astro check
 npm run typecheck    # tsc --noEmit
-npm run test         # vitest 20 tests
+npm run test         # vitest
 npm run build        # astro build (Cloudflare)
-npm run deploy:dry   # wrangler --dry-run
+npm run deploy:dry   # wrangler deploy --dry-run
+npm run deploy       # astro build && wrangler deploy
 ```
 
 <details>
 <summary><b>🔧 Configuration</b> (click to expand)</summary>
 
-- `PUBLIC_SITE_NAME` in `wrangler.jsonc:vars`
+- `PUBLIC_SITE_NAME` in `wrangler.jsonc` → `vars` — instance display name used in
+  page titles, `og:site_name`, JSON-LD and the RSS feed title. Change it to
+  white-label a fork; it falls back to `UptimeCove` when unset.
+- `PUBLIC_SITE_URL` — **build-time** env var read by `astro.config.mjs`. Sets the
+  canonical origin for `<link rel=canonical>`, `og:url`, `robots.txt` and
+  `sitemap.xml`. Defaults to `https://uptimecove.com`, so set it before you build:
+  `PUBLIC_SITE_URL=https://status.example.com npm run deploy`
 - `ADMIN_TOKEN` → `.dev.vars` locally, `npx wrangler secret put ADMIN_TOKEN` in production
-- Bindings (`DB`, `CACHE`, `ASSETS`) are **auto-provisioned** — no manual `database_id` needed for fresh clones. If you rename them, run `npx wrangler types`.
+- Bindings (`DB`, `CACHE`, `ASSETS`) are declared in `wrangler.jsonc`. Create the
+  resources once and paste the IDs it prints:
+
+  ```bash
+  npx wrangler d1 create uptimecove-db
+  npx wrangler kv namespace create CACHE
+  ```
+
+  If you rename a binding, run `npx wrangler types` to regenerate `worker-configuration.d.ts`.
+- Social/PWA rasters in `public/` (`og.png`, `icon-192.png`, `icon-512.png`) are
+  generated from `og.svg` / `favicon.svg` and committed. X, Slack, LinkedIn and iOS
+  all refuse SVG, so edit the SVG and re-export if you rebrand.
 
 </details>
 
@@ -133,12 +157,17 @@ npm run deploy:dry   # wrangler --dry-run
 <summary><b>🗃️ Database</b></summary>
 
 - `migrations/0001_init.sql` — monitors, checks, incidents, status_pages
-- `migrations/0002_phase0.sql` — leases + indexes (idempotent, safe to re-run)
+- `migrations/0002_phase0.sql` — leases + indexes
 - `migrations/0003_phase1.sql` — body assertions, channels, maintenance, sessions
 - `migrations/0004_phase3.sql` — monitor_type, on-call, postmortems, templates
 
-Local: `npm run db:migrate`  
-Remote: see Deployment below.
+Both commands go through `wrangler d1 migrations apply`, which tracks what it has
+already run in a `d1_migrations` table — safe to re-run, applies only what's new.
+
+```bash
+npm run db:migrate          # local  (.wrangler/state, used by astro dev)
+npm run db:migrate:remote   # production D1
+```
 
 </details>
 
@@ -149,27 +178,27 @@ Remote: see Deployment below.
 > **Your instance is private.** Only you know `ADMIN_TOKEN`. Status page is public, dashboard is not.
 
 ```bash
-# 1 — Deploy (first run creates D1/KV)
-npm run build
-npx wrangler deploy
+# 1 — Create the resources and paste the printed IDs into wrangler.jsonc
+npx wrangler d1 create uptimecove-db
+npx wrangler kv namespace create CACHE
 
-# 2 — Apply migrations remotely (once). 0002 “duplicate column” is safe to ignore — 0001 already has it.
-npx wrangler d1 execute uptimecove-db --remote --file=migrations/0001_init.sql
-npx wrangler d1 execute uptimecove-db --remote --file=migrations/0002_phase0.sql  # may say duplicate column — ignore
-npx wrangler d1 execute uptimecove-db --remote --file=migrations/0003_phase1.sql
-npx wrangler d1 execute uptimecove-db --remote --file=migrations/0004_phase3.sql
-
-# 3 — Secret
+# 2 — Store the admin token as a secret (not in wrangler.jsonc)
 npx wrangler secret put ADMIN_TOKEN
 
-# 4 — Verify
-curl -s https://uptimecove.com/api/status/default | jq .
-# open https://uptimecove.com/status/default  (public)
-# open https://uptimecove.com/login            (private — your token)
+# 3 — Build + deploy
+npm run deploy
+
+# 4 — Apply migrations to the remote database
+npm run db:migrate:remote
+
+# 5 — Verify
+curl -s https://your-worker.workers.dev/api/status/default | jq .
+# open /status/default  (public)
+# open /login           (private — your token)
 ```
 
 **Crons** (`wrangler.jsonc`):
-- `* * * * *` — claim up to 50 due monitors, concurrency 5, lease 45s
+- `* * * * *` — claim up to 50 due monitors, concurrency 5, lease 45s; then sweep heartbeats
 - `30 3 * * *` — prune checks >90d + clean expired sessions
 
 **Custom domain:** Cloudflare Dashboard → Workers → `uptimecove` → Settings → Triggers → Custom Domains → `status.yourdomain.com` (or set per status page in dashboard).
@@ -181,8 +210,12 @@ curl -s https://uptimecove.com/api/status/default | jq .
 ## 🔐 Security
 
 - Single admin token → opaque `uc_session` (`HttpOnly`, `SameSite=Lax`, `Secure` in prod, 7d, `sessions` table)
-- API keys: `uc_...` `SHA-256` hashed (`src/lib/auth.ts:331`), `Authorization: Bearer` (`src/middleware.ts:23`)
+- API keys: `uc_...`, stored `SHA-256` hashed (`sha256Hex` in `src/lib/auth.ts`), presented as `Authorization: Bearer` and checked in `src/middleware.ts`
 - URL validation: private/reserved networks, bad ports, credentials, fragments blocked; redirects re-validated (`src/lib/validation.ts:24`)
+- Unauthenticated by design: `/api/status/*`, `/api/badge/*`, `/api/auth/*`, and
+  `POST|GET /api/heartbeat/:id/ping` (the ping URL itself is the secret, since a
+  cron job can't carry a session cookie). Everything else under `/api/*` needs a
+  session cookie or an API key.
 - Incident `cause` normalized before public display
 - Report privately: [SECURITY.md](./SECURITY.md) — **do not** open public issues for vulnerabilities
 
@@ -204,22 +237,34 @@ Heartbeats: POST /api/heartbeat/:id/ping must arrive within grace window
 
 ```
 src/
-  worker.ts                    # fetch + scheduled (checks + retention + session cleanup)
-  middleware.ts                # session / API-key gate
+  worker.ts                    # fetch + scheduled (checks, heartbeats, retention, session cleanup)
+  middleware.ts                # session / API-key gate + public-route allowlist
   lib/validation.ts            # SSRF-safe URL validation
   lib/monitor.ts               # claim → fetch → batch → incident
+  lib/heartbeat.ts             # dead-man's-switch pings + grace-window sweep
   lib/queries.ts               # D1 + correct weighted uptime
   lib/auth.ts                  # orgs / users / API keys / audit
   lib/sessions.ts              # opaque sessions
+  lib/site.ts                  # PUBLIC_SITE_NAME lookup
   lib/advancedChecks.ts        # TLS/DNS/TCP/synthetic
-  components/StatusDot.astro / Sparkline.astro / UptimeBar.astro
-  layouts/Base.astro / DashboardLayout.astro
+  components/StatusDot · Sparkline · UptimeBar · StatCard · SiteHeader · Footer
+  layouts/Base.astro           # <head>, canonical, OG, JSON-LD, noindex flag
+  layouts/PageLayout.astro     # content/legal pages (header + footer + typography)
+  layouts/DashboardLayout.astro
   pages/index.astro            # landing
-  pages/demo.astro             # ★ public demo (prefilled, read-only)
-  pages/login.astro            # minimal, generic
-  pages/dashboard.astro        # private
+  pages/docs.astro             # API reference
+  pages/about.astro            # about the project
+  pages/contact.astro          # support channels
+  pages/privacy.astro          # privacy policy
+  pages/terms.astro            # terms of service
+  pages/robots.txt.ts          # generated per-origin
+  pages/sitemap.xml.ts         # static pages + public status pages from D1
+  pages/demo.astro             # ★ public demo (prefilled, read-only, noindex)
+  pages/login.astro            # minimal, generic, noindex
+  pages/dashboard.astro        # private, noindex
+  pages/dashboard/*            # status pages, maintenance, incidents, api keys, analytics…
   pages/status/[slug].astro    # public (polls every 30s)
-  pages/api/*                  # monitors, checks, status, etc.
+  pages/api/*                  # monitors, checks, status, badge, heartbeat, subscribers…
 migrations/0001_init.sql .. 0004_phase3.sql
 ```
 
@@ -232,7 +277,7 @@ npm run check
 npm run typecheck
 npm run test
 npm run build
-npx wrangler deploy --dry-run
+npm run deploy:dry
 npx wrangler d1 execute uptimecove-db --local --command "SELECT name FROM sqlite_master WHERE type='table';"
 ```
 
@@ -271,6 +316,8 @@ See [SECURITY.md](./SECURITY.md). Please **do not** open public issues for vulne
 ## 📄 License
 
 MIT — see [LICENSE](./LICENSE).
+
+Site pages: [About](https://uptimecove.com/about) • [Contact](https://uptimecove.com/contact) • [Privacy](https://uptimecove.com/privacy) • [Terms](https://uptimecove.com/terms)
 
 <div align="center">
 

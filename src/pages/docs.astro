@@ -1,14 +1,17 @@
 ---
 // @ts-nocheck
-import Base from '../layouts/Base.astro';
+import PageLayout from '../layouts/PageLayout.astro';
 ---
 
-<Base title="API Docs — UptimeCove">
-  <div class="mx-auto max-w-4xl px-6 py-12">
-    <h1 class="text-3xl font-bold text-slate-900">API Documentation</h1>
-    <p class="mt-2 text-slate-500">Base URL: <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-sm">https://uptimecove.com</code></p>
+<PageLayout
+  title="API Docs"
+  description="Reference for the UptimeCove HTTP API: monitors, checks, status pages, incidents, maintenance windows, notification channels, badges and authentication."
+  heading="API Documentation"
+  ogType="article"
+>
+  <p>Base URL is your own deployment's origin — <code>https://uptimecove.com</code> is used below as an example.</p>
 
-    <div class="mt-8 space-y-6">
+  <div class="mt-8 space-y-6">
       <section class="card p-6">
         <h2 class="font-mono text-sm font-bold text-blue-600">GET /api/status/&lbrace;slug&rbrace;</h2>
         <p class="mt-2 text-sm text-slate-600">Public. Returns status page and monitors with daily uptime. <span class="font-mono text-xs bg-slate-100 px-1 rounded">Cache-Control: no-store</span></p>
@@ -69,11 +72,23 @@ import Base from '../layouts/Base.astro';
       </section>
 
       <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">GET /api/badge/&lbrace;slug&rbrace;</h2>
+        <p class="mt-2 text-sm text-slate-600">Public. Returns an SVG uptime/status badge for a public status page — embeddable straight into a README. Query params: <code>label</code>, <code>style</code>.</p>
+      </section>
+
+      <section class="card p-6">
+        <h2 class="font-mono text-sm font-bold text-blue-600">POST /api/heartbeat/&lbrace;id&rbrace;/ping · GET /api/heartbeat/&lbrace;id&rbrace;/ping</h2>
+        <p class="mt-2 text-sm text-slate-600">Public (the URL is the secret). Dead-man's-switch endpoint for cron jobs and backups: <code>id</code> is the monitor id, and each ping marks the monitor up and resolves any open incident. If no ping arrives within <code>grace_seconds</code>, the scheduled worker marks it down. GET is accepted so <code>curl</code> in a crontab works without flags.</p>
+        <pre class="mt-3 overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-300"><code>curl -fsS https://uptimecove.example/api/heartbeat/7/ping</code></pre>
+      </section>
+
+      <section class="card p-6">
         <h2 class="font-mono text-sm font-bold text-slate-900">Auth</h2>
-        <p class="mt-2 text-sm text-slate-600">Single admin token via <code>ADMIN_TOKEN</code>. Login POSTs to <code>/api/auth/login</code> sets <code>uc_session</code> HttpOnly session cookie (7d, Secure in prod, Lax). All <code>/dashboard</code> and <code>/api/*</code> except <code>/api/status/*</code> and <code>/api/auth/*</code> require it. Sessions table validates and revokes on token rotation.</p>
+        <p class="mt-2 text-sm text-slate-600">Single admin token via <code>ADMIN_TOKEN</code>. Login POSTs to <code>/api/auth/login</code> and sets a <code>uc_session</code> HttpOnly cookie (7d, Secure in prod, SameSite=Lax). Machine clients can send <code>Authorization: Bearer &lt;api key&gt;</code> instead. Everything under <code>/dashboard</code> and <code>/api/*</code> requires auth <em>except</em> <code>/api/auth/*</code>, <code>/api/status/*</code>, <code>/api/badge/*</code> and <code>/api/heartbeat/*/ping</code>. The sessions table validates each request, so rotating <code>ADMIN_TOKEN</code> revokes existing sessions.</p>
       </section>
     </div>
 
-    <p class="mt-8 text-sm text-slate-400">See <a href="https://github.com/anomalyco/opencode" class="text-blue-600 hover:underline">repo</a> for OpenAPI JSON when available. PRs to improve docs welcome.</p>
-  </div>
-</Base>
+  <p class="mt-8 text-sm text-slate-400">
+    Found a gap? <a href="https://github.com/iharshalp/UptimeCove/issues/new/choose" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Open an issue</a> or send a PR — undocumented behaviour counts as a bug.
+  </p>
+</PageLayout>

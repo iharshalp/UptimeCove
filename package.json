@@ -29,6 +29,7 @@
     "test:watch": "vitest",
     "db:migrate": "node scripts/migrate.mjs",
     "db:migrate:remote": "node scripts/migrate.mjs --remote",
+    "deploy": "astro build && wrangler deploy",
     "deploy:dry": "wrangler deploy --dry-run"
   },
   "dependencies": {
@@ -40,6 +41,10 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "wrangler": "^4.126.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "vitest": "^4.1.11"
   },
   "allowScripts": {
     "esbuild": true

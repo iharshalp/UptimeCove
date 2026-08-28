@@ -1,0 +1,118 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+
+const stack = [
+	{ name: 'Astro 7', role: 'Server-rendered UI, file-based routing, zero client JS by default' },
+	{ name: 'Cloudflare Workers', role: 'Runs the app and the Cron Trigger that fires the checks' },
+	{ name: 'Cloudflare D1', role: 'SQLite at the edge — monitors, checks, incidents, subscribers' },
+	{ name: 'Cloudflare KV', role: 'Cached status-page payloads and short-lived counters' },
+	{ name: 'Tailwind CSS v4', role: 'Styling, via the Vite plugin — no config file to maintain' },
+	{ name: 'Vitest', role: 'Unit tests for validation, uptime maths and check logic' },
+];
+
+const numbers = [
+	{ value: '$0', label: 'Infrastructure cost on the Cloudflare free tier' },
+	{ value: '60s', label: 'Fastest check interval' },
+	{ value: '90d', label: 'Uptime history on status pages' },
+	{ value: 'MIT', label: 'Licence — fork it, sell it, whatever' },
+];
+---
+
+<PageLayout
+	title="About"
+	description="UptimeCove is free, open-source uptime monitoring and status pages that run entirely on your own Cloudflare account — no servers, no subscription, no vendor holding your data."
+	heading="About UptimeCove"
+	tagline="Uptime monitoring shouldn't cost more than the thing it monitors."
+>
+	<section class="card p-6">
+		<h2>What it is</h2>
+		<p>
+			UptimeCove is an open-source uptime monitor and status page that you deploy to
+			<strong>your own Cloudflare account</strong>. A Workers Cron Trigger checks your endpoints on a
+			schedule, results land in Cloudflare D1, and public status pages are rendered straight from that
+			data at the edge.
+		</p>
+		<p>
+			There is no UptimeCove company holding your monitoring data, no seat pricing, and no plan to
+			upsell you. The whole thing is a repository you control.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>Why it exists</h2>
+		<p>
+			Hosted monitoring is priced for enterprises but bought by side projects. Paying a monthly
+			subscription to find out whether a hobby API is up — and handing a third party the history of
+			every outage you've ever had — never made much sense.
+		</p>
+		<p>
+			Cloudflare's free tier already includes scheduled Workers, a SQL database and a KV store. That's
+			everything a monitor needs. UptimeCove is what happens when you assemble those pieces instead of
+			renting them.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>By the numbers</h2>
+		<dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+			{numbers.map((item) => (
+				<div class="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+					<dt class="text-2xl font-bold tracking-tight text-slate-900">{item.value}</dt>
+					<dd class="mt-1 text-xs leading-snug text-slate-500">{item.label}</dd>
+				</div>
+			))}
+		</dl>
+	</section>
+
+	<section class="card p-6">
+		<h2>How it works</h2>
+		<ul>
+			<li><strong>Cron fires every minute.</strong> The Worker selects monitors whose interval has elapsed and checks them in parallel.</li>
+			<li><strong>Checks are validated.</strong> Status code, response time, and optional body-contains / body-must-not-contain assertions all count toward pass or fail.</li>
+			<li><strong>Incidents open on the second consecutive failure</strong> — one flaky request doesn't page you — and close automatically on recovery.</li>
+			<li><strong>Notifications</strong> go out over email, webhooks, Slack or Discord, and respect maintenance windows.</li>
+			<li><strong>Status pages</strong> render 90-day uptime bars, current state and incident history for whichever monitors you choose to publish.</li>
+		</ul>
+	</section>
+
+	<section class="card p-6">
+		<h2>Built with</h2>
+		<dl class="mt-4 divide-y divide-slate-100">
+			{stack.map((item) => (
+				<div class="flex flex-col gap-1 py-3 sm:flex-row sm:gap-4">
+					<dt class="text-sm font-semibold text-slate-900 sm:w-48 sm:shrink-0">{item.name}</dt>
+					<dd class="text-sm text-slate-600">{item.role}</dd>
+				</div>
+			))}
+		</dl>
+	</section>
+
+	<section class="card p-6">
+		<h2>Who maintains it</h2>
+		<p>
+			UptimeCove is built and maintained by
+			<a href="https://github.com/iharshalp" target="_blank" rel="noopener noreferrer">Harshal Patil</a>
+			with help from anyone who sends a pull request. It's released under the
+			<a href="https://github.com/iharshalp/UptimeCove/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT licence</a>,
+			so you're free to use it commercially, modify it, and ship your own version.
+		</p>
+		<p>
+			Issues and feature requests are welcome on
+			<a href="https://github.com/iharshalp/UptimeCove/issues" target="_blank" rel="noopener noreferrer">GitHub</a>,
+			and <a href="https://github.com/iharshalp/UptimeCove/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a>
+			explains how to get a local instance running.
+		</p>
+	</section>
+
+	<!-- Inline colours: the .legal typography rules in PageLayout would otherwise
+	     win over utility classes on this inverted panel. -->
+	<section class="rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-8 text-center">
+		<h2 class="text-xl font-bold" style="color:#fff">Try it before you deploy it</h2>
+		<p class="mt-2 text-sm" style="color:#dbeafe">The demo dashboard runs on sample data — no signup, nothing to install.</p>
+		<a
+			href="/demo"
+			class="mt-6 inline-block rounded-full bg-white px-7 py-3 text-sm font-semibold shadow-lg transition hover:bg-blue-50"
+			style="color:#1d4ed8;text-decoration:none"
+		>Open the demo →</a>
+	</section>
+</PageLayout>

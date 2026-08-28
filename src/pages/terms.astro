@@ -1,0 +1,178 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+
+const UPDATED = '2026-08-28';
+---
+
+<PageLayout
+	title="Terms of Service"
+	description="The terms that cover this website and the public demo. The UptimeCove software itself is governed by the MIT licence."
+	heading="Terms of Service"
+	tagline="These terms cover this website and the public demo. The software you download is governed by the MIT licence, which is deliberately more permissive than anything here."
+	updated={UPDATED}
+>
+	<section class="card p-6">
+		<h2>1. Scope</h2>
+		<p>By using this website — the marketing pages, the documentation and the public demo — you agree to these terms. If you don't, please don't use it.</p>
+		<p>Two things are <strong>not</strong> covered here:</p>
+		<ul>
+			<li>
+				<strong>The UptimeCove source code.</strong> Your rights to use, copy, modify and distribute it
+				come from the
+				<a href="https://github.com/iharshalp/UptimeCove/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT licence</a>,
+				and nothing on this page narrows that licence.
+			</li>
+			<li>
+				<strong>Instances other people run.</strong> If you're looking at a status page operated by
+				another company, their terms apply, not ours.
+			</li>
+		</ul>
+	</section>
+
+	<section class="card p-6">
+		<h2>2. What you get</h2>
+		<p>
+			A free, no-signup website with documentation and a demo dashboard, plus a public repository you can
+			clone. There is no paid tier, no account to create here, and no service-level agreement.
+		</p>
+		<p>
+			The demo is a shared sandbox filled with sample data. It may be reset, changed or taken down at any
+			time without notice, and nothing you see there should be treated as durable.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>3. Acceptable use</h2>
+		<p>When using this website, don't:</p>
+		<ul>
+			<li>attempt to gain unauthorised access to the site, its dashboard, its APIs or its underlying infrastructure;</li>
+			<li>send automated traffic at a volume that degrades the service for others, or attempt a denial-of-service;</li>
+			<li>scrape or reuse content in a way that misrepresents it as your own product or implies an endorsement;</li>
+			<li>upload or transmit malware, or use the site to distribute unlawful content;</li>
+			<li>remove or obscure copyright and licence notices.</li>
+		</ul>
+		<p>
+			Security researchers are welcome. Please follow the
+			<a href="https://github.com/iharshalp/UptimeCove/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">security policy</a>
+			and report privately rather than testing destructively.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>4. If you self-host</h2>
+		<p>Running your own instance makes you the operator, with the responsibilities that implies:</p>
+		<ul>
+			<li>
+				<strong>Only monitor endpoints you're authorised to monitor.</strong> Pointing a monitor at
+				someone else's infrastructure at a high frequency can constitute abuse, and it is your
+				responsibility, not ours.
+			</li>
+			<li><strong>Comply with the terms of your own providers</strong>, including <a href="https://www.cloudflare.com/terms/" target="_blank" rel="noopener noreferrer">Cloudflare's</a>, and with any usage limits on your plan.</li>
+			<li><strong>Secure your deployment.</strong> Set a strong <code>ADMIN_TOKEN</code>, keep it and your <code>.dev.vars</code> out of version control, and rotate credentials if they leak.</li>
+			<li><strong>Handle your users' data lawfully</strong> — in particular the email addresses of anyone who subscribes to your status page. See the <a href="/privacy">privacy policy</a> for exactly what is stored.</li>
+			<li><strong>Keep your own backups.</strong> The maintainers have no access to your database and cannot recover it.</li>
+		</ul>
+		<p>
+			You are responsible for costs your deployment incurs. UptimeCove is designed to fit Cloudflare's
+			free tier, but check intervals, monitor counts and retention are yours to configure and yours to
+			pay for if you exceed it.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>5. Not a safety-critical system</h2>
+		<p>
+			UptimeCove is a best-effort monitoring tool. Checks can be delayed or skipped when a scheduled
+			Worker doesn't fire, a network path is degraded, or a platform limit is hit. Alerts can be delayed
+			or lost by the notification provider you chose.
+		</p>
+		<p>
+			Do not rely on it as the sole safeguard where an undetected outage would cause serious harm —
+			medical, financial, industrial or life-safety contexts included. Use independent, redundant
+			monitoring for anything critical.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>6. Intellectual property</h2>
+		<p>
+			The source code is MIT licensed — see the <a href="https://github.com/iharshalp/UptimeCove/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">LICENSE</a>
+			file for the authoritative text. The "UptimeCove" name and logo identify this project; you may use
+			them to refer to it accurately, but not in a way that suggests your fork or product is the
+			official project or is endorsed by it.
+		</p>
+		<p>
+			Contributions you submit are accepted under the same MIT licence, as described in
+			<a href="https://github.com/iharshalp/UptimeCove/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a>.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>7. No warranty</h2>
+		<p>
+			This website and the software are provided <strong>"as is" and "as available", without warranty of
+			any kind</strong>, express or implied, including the implied warranties of merchantability, fitness
+			for a particular purpose and non-infringement. This mirrors the disclaimer in the MIT licence.
+		</p>
+		<p>
+			We don't promise the site will be uninterrupted, that the demo will stay up, that the software is
+			free of defects, or that it will detect every outage.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>8. Limitation of liability</h2>
+		<p>
+			To the fullest extent the law allows, the maintainers and contributors are not liable for any
+			indirect, incidental, special, consequential or punitive damages, or for lost profits, lost
+			revenue, lost data, or downtime that went undetected — whether the claim sounds in contract, tort
+			or anything else, and even if we were told such damage was possible.
+		</p>
+		<p>
+			Since this is free software provided at no charge, our total aggregate liability to you is
+			<strong>zero</strong>.
+		</p>
+		<p>
+			Some jurisdictions don't allow certain exclusions of warranty or liability. Where that's the case,
+			the exclusions above apply only to the extent permitted, and your mandatory statutory rights are
+			unaffected.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>9. Changes and termination</h2>
+		<p>
+			These terms may change; the "last updated" date above will move, and the full history is public in
+			the repository. Continuing to use the site after a change means you accept it.
+		</p>
+		<p>
+			We may restrict or block access to this website or the demo — for abuse, for cost reasons, or for
+			no reason at all — but we cannot revoke your MIT licence to code you already have.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>10. Governing law</h2>
+		<p>
+			There is no payment and no contract for services here, so we don't impose a specific forum or
+			choice of law on you. Any dispute will be handled under the law that mandatorily applies to you,
+			and consumer protections available where you live are not waived by anything above. Rights to the
+			code are governed solely by the MIT licence.
+		</p>
+		<p>
+			If you fork UptimeCove and offer it as a hosted service, write your own terms — including a
+			governing-law clause — rather than reusing this page.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>11. Contact</h2>
+		<p>
+			Questions about these terms belong on the <a href="/contact">contact page</a>. Bugs and feature
+			requests belong in
+			<a href="https://github.com/iharshalp/UptimeCove/issues" target="_blank" rel="noopener noreferrer">GitHub issues</a>,
+			where they're useful to everyone.
+		</p>
+		<p>These terms are written to be readable and accurate. They are not legal advice.</p>
+	</section>
+</PageLayout>

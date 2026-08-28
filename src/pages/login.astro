@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 const error = Astro.url.searchParams.get('error');
 ---
 
-<Base title="Sign in">
+<Base title="Sign in" noindex>
 	<main class="flex min-h-screen flex-col items-center justify-center bg-[#eef1f6] px-6 py-12">
 		<div class="mb-6 flex items-center gap-2 text-xs font-medium">
 			<a href="https://github.com/iharshalp/UptimeCove" target="_blank" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 hover:bg-slate-50">

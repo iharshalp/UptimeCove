@@ -1,10 +1,54 @@
 ---
+import '../styles/global.css';
+import '@fontsource-variable/inter';
+import { siteName } from '../lib/site';
+
+const SITE_NAME = siteName();
+
 interface Props {
 	title?: string;
 	description?: string;
+	/** Absolute or root-relative image for social cards. */
+	image?: string;
+	/** Keep pages like the dashboard and demo out of search results. */
+	noindex?: boolean;
+	/** Overrides the canonical URL when a page is reachable at several paths. */
+	canonical?: string;
+	/** 'website' for landing/legal pages, 'article' for docs-style content. */
+	ogType?: 'website' | 'article';
 }
-const { title = 'UptimeCove — Edge-native uptime monitoring & status pages', description = 'Free, open-source uptime monitoring that runs entirely on your own Cloudflare account. Zero-cost infrastructure, beautiful status pages.' } = Astro.props;
-import '../styles/global.css';
+
+const {
+	title = `${SITE_NAME} — Edge-native uptime monitoring & status pages`,
+	description = 'Free, open-source uptime monitoring that runs entirely on your own Cloudflare account. Zero-cost infrastructure, beautiful status pages.',
+	// Raster, not the SVG source: X, Slack and LinkedIn all refuse SVG og:image.
+	// public/og.png is generated from public/og.svg at 1200x630.
+	image = '/og.png',
+	noindex = false,
+	canonical,
+	ogType = 'website',
+} = Astro.props;
+
+// Astro.site comes from `site` in astro.config.mjs. Fall back to the current
+// origin so absolute URLs stay correct on preview deployments and localhost.
+const origin = Astro.site?.origin ?? Astro.url.origin;
+const canonicalUrl = new URL(canonical ?? Astro.url.pathname, origin).href.replace(/(?<=.)\/$/, '');
+const imageUrl = new URL(image, origin).href;
+
+const schema = {
+	'@context': 'https://schema.org',
+	'@type': 'SoftwareApplication',
+	name: SITE_NAME,
+	applicationCategory: 'DeveloperApplication',
+	operatingSystem: 'Cloudflare Workers',
+	description,
+	url: origin,
+	license: 'https://opensource.org/licenses/MIT',
+	isAccessibleForFree: true,
+	offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+	author: { '@type': 'Person', name: 'Harshal Patil', url: 'https://github.com/iharshalp' },
+	codeRepository: 'https://github.com/iharshalp/UptimeCove',
+};
 ---
 
 <!doctype html>
@@ -12,14 +56,46 @@ import '../styles/global.css';
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+		<title>{title}</title>
 		<meta name="description" content={description} />
+		<link rel="canonical" href={canonicalUrl} />
+
+		{noindex
+			? <meta name="robots" content="noindex, nofollow" />
+			: <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />}
+
+		<!-- Icons / PWA -->
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
+		<!-- iOS ignores SVG here, so this one has to be a raster. -->
+		<link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<meta name="theme-color" content="#2563eb" />
+		<meta name="color-scheme" content="light" />
+
+		<!-- Open Graph -->
+		<meta property="og:type" content={ogType} />
+		<meta property="og:site_name" content={SITE_NAME} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
-		<title>{title}</title>
+		<meta property="og:url" content={canonicalUrl} />
+		<meta property="og:image" content={imageUrl} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content={`${SITE_NAME} — edge-native uptime monitoring`} />
+		<meta property="og:locale" content="en_US" />
+
+		<!-- Twitter / X -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={imageUrl} />
+		<meta name="twitter:image:alt" content={`${SITE_NAME} — edge-native uptime monitoring`} />
+
+		<meta name="generator" content={Astro.generator} />
+		<link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} status updates`} href="/api/status/default/rss" />
+
+		<script type="application/ld+json" set:html={JSON.stringify(schema)} is:inline />
 	</head>
 	<body class="min-h-screen">
 		<slot />

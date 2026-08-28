@@ -1,0 +1,108 @@
+---
+import PageLayout from '../layouts/PageLayout.astro';
+
+const channels = [
+	{
+		title: 'Bug reports & feature requests',
+		href: 'https://github.com/iharshalp/UptimeCove/issues/new/choose',
+		cta: 'Open an issue',
+		body:
+			'The fastest route, and the only one that leaves a record other people can find. Issue templates will prompt you for the details that actually speed up a fix.',
+		hint: 'Include: what you expected, what happened, your wrangler/Node versions, and any console or `wrangler tail` output.',
+	},
+	{
+		title: 'Security vulnerabilities',
+		href: 'https://github.com/iharshalp/UptimeCove/security/advisories/new',
+		cta: 'Report privately',
+		body:
+			'Please do not file a public issue for a vulnerability. Open a private GitHub security advisory so it can be fixed before it is disclosed.',
+		hint: 'Include the affected route or file, reproduction steps, and an impact assessment. See SECURITY.md for scope.',
+	},
+	{
+		title: 'Contributing code',
+		href: 'https://github.com/iharshalp/UptimeCove/blob/main/CONTRIBUTING.md',
+		cta: 'Read the guide',
+		body:
+			'Pull requests are welcome, including small ones. The contributing guide covers local setup, the test suite, and what a reviewable PR looks like.',
+		hint: 'Run `npm run test` and `npm run build` before pushing — CI runs both.',
+	},
+	{
+		title: 'Questions about using it',
+		href: 'https://github.com/iharshalp/UptimeCove/issues?q=is%3Aissue',
+		cta: 'Search existing issues',
+		body:
+			'Setup and configuration questions are usually already answered. If yours is not, open an issue — a question that needed asking is a documentation bug.',
+		hint: 'The /docs page covers every API endpoint and the auth model.',
+	},
+];
+---
+
+<PageLayout
+	title="Contact"
+	description="How to reach the UptimeCove maintainers: GitHub issues for bugs and features, private security advisories for vulnerabilities, and pull requests for code."
+	heading="Contact"
+	tagline="UptimeCove is a small open-source project, not a company with a support desk. Everything happens on GitHub, in public, which means answers stay searchable for the next person."
+>
+	<div class="grid gap-4 sm:grid-cols-2">
+		{channels.map((channel) => (
+			<section class="card flex flex-col p-6">
+				<h2>{channel.title}</h2>
+				<p class="mt-2 grow text-[0.9375rem] leading-relaxed text-slate-600">{channel.body}</p>
+				<p class="mt-3 text-xs leading-relaxed text-slate-400">{channel.hint}</p>
+				<a
+					href={channel.href}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold transition hover:bg-slate-700"
+					style="color:#fff;text-decoration:none"
+				>
+					{channel.cta}
+					<span aria-hidden="true">→</span>
+				</a>
+			</section>
+		))}
+	</div>
+
+	<section class="card p-6">
+		<h2>Response expectations</h2>
+		<p>
+			This is maintained in spare time, so there is no guaranteed response time and no support contract —
+			see the <a href="/terms">terms</a>. Security reports are prioritised over everything else. Clear,
+			reproducible issues get answered faster than vague ones, and a pull request almost always gets
+			attention faster than a request for someone else to write it.
+		</p>
+	</section>
+
+	<section class="card p-6">
+		<h2>What we can't help with</h2>
+		<ul>
+			<li>
+				<strong>A status page you found that isn't ours.</strong> Anyone can self-host UptimeCove. If a
+				company's status page runs on it, only that company can tell you about their outage — the
+				maintainers have no access to their instance or its data.
+			</li>
+			<li>
+				<strong>Recovering data from your deployment.</strong> Your Cloudflare D1 database lives in your
+				account. We can't see it and can't restore it. Keep backups.
+			</li>
+			<li>
+				<strong>Cloudflare account or billing problems.</strong> Those go to
+				<a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer">Cloudflare support</a>.
+			</li>
+		</ul>
+	</section>
+
+	<section class="card p-6">
+		<h2>Maintainer</h2>
+		<p>
+			UptimeCove is maintained by
+			<a href="https://github.com/iharshalp" target="_blank" rel="noopener noreferrer">@iharshalp</a>.
+			For anything that genuinely can't be public — a security report, a licensing question — GitHub is
+			still the right starting point; use a private advisory or reach out through the profile above.
+		</p>
+		<p class="mt-3 text-[0.9375rem] leading-relaxed text-slate-400">
+			Deploying UptimeCove for your own users? Put <em>your</em> contact details on your status page. This
+			page is for the project itself.
+		</p>
+	</section>
+</PageLayout>

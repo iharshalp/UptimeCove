@@ -1,0 +1,111 @@
+---
+import Base from './Base.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import Footer from '../components/Footer.astro';
+import { siteName } from '../lib/site';
+
+interface Props {
+	title: string;
+	description: string;
+	/** Big H1 shown above the content. Defaults to the meta title. */
+	heading?: string;
+	/** Short intro sentence rendered under the H1. */
+	tagline?: string;
+	/** ISO date (YYYY-MM-DD) shown as "Last updated" — legal pages need it. */
+	updated?: string;
+	ogType?: 'website' | 'article';
+}
+
+const { title, description, heading, tagline, updated, ogType = 'website' } = Astro.props;
+
+const updatedLabel = updated
+	? new Date(`${updated}T00:00:00Z`).toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+			timeZone: 'UTC',
+		})
+	: null;
+---
+
+<Base title={`${title} — ${siteName()}`} description={description} ogType={ogType}>
+	<SiteHeader />
+
+	<main class="mx-auto max-w-4xl px-6 py-14">
+		<header>
+			<h1 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{heading ?? title}</h1>
+			{tagline && <p class="mt-3 text-lg leading-relaxed text-slate-600">{tagline}</p>}
+			{updatedLabel && (
+				<p class="mt-4 text-sm text-slate-400">
+					Last updated <time datetime={updated}>{updatedLabel}</time>
+				</p>
+			)}
+		</header>
+
+		<div class="legal mt-10 space-y-6">
+			<slot />
+		</div>
+	</main>
+
+	<Footer />
+</Base>
+
+<style is:global>
+	/* Scoped typography for long-form legal/marketing copy. Tailwind's typography
+	   plugin isn't installed, and a handful of rules is cheaper than adding it.
+	   Every selector is limited to elements with no class of their own, so a page
+	   that reaches for utility classes always wins — element selectors here would
+	   otherwise out-specify a single Tailwind class. */
+	.legal h2:not([class]) {
+		font-size: 1.125rem;
+		font-weight: 700;
+		color: #0f172a;
+		letter-spacing: -0.01em;
+	}
+	.legal h3:not([class]) {
+		margin-top: 1.25rem;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: #0f172a;
+	}
+	.legal p:not([class]),
+	.legal li:not([class]) {
+		font-size: 0.9375rem;
+		line-height: 1.7;
+		color: #475569;
+	}
+	.legal h2:not([class]) + p:not([class]),
+	.legal h3:not([class]) + p:not([class]),
+	.legal h2:not([class]) + ul:not([class]),
+	.legal p:not([class]) + p:not([class]),
+	.legal p:not([class]) + ul:not([class]) {
+		margin-top: 0.75rem;
+	}
+	.legal ul:not([class]) {
+		list-style: disc;
+		padding-left: 1.25rem;
+	}
+	.legal ul:not([class]) li + li {
+		margin-top: 0.375rem;
+	}
+	.legal a:not([class]) {
+		color: #2563eb;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.legal a:not([class]):hover {
+		color: #1d4ed8;
+	}
+	.legal code:not([class]) {
+		border-radius: 0.25rem;
+		background: #f1f5f9;
+		padding: 0.1rem 0.35rem;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		color: #0f172a;
+	}
+	.legal strong:not([class]) {
+		font-weight: 600;
+		color: #0f172a;
+	}
+</style>

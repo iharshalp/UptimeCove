@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="UptimeCove — edge-native uptime monitoring and status pages">
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0%" stop-color="#0f172a"/>
+			<stop offset="55%" stop-color="#15254a"/>
+			<stop offset="100%" stop-color="#0f172a"/>
+		</linearGradient>
+		<radialGradient id="glow" cx="50%" cy="0%" r="70%">
+			<stop offset="0%" stop-color="#2563eb" stop-opacity="0.40"/>
+			<stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+		</radialGradient>
+		<radialGradient id="glow2" cx="88%" cy="18%" r="45%">
+			<stop offset="0%" stop-color="#10b981" stop-opacity="0.28"/>
+			<stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+		</radialGradient>
+	</defs>
+
+	<rect width="1200" height="630" fill="url(#bg)"/>
+	<rect width="1200" height="630" fill="url(#glow)"/>
+	<rect width="1200" height="630" fill="url(#glow2)"/>
+
+	<!-- logo mark -->
+	<g transform="translate(96 92)">
+		<rect width="72" height="72" rx="18" fill="#2563eb"/>
+		<path d="M18 36h10l7.5-20 10 40 7.5-20H54" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+	</g>
+
+	<text x="192" y="145" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="44" font-weight="700" fill="#ffffff">UptimeCove</text>
+
+	<text x="96" y="290" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="76" font-weight="800" fill="#ffffff">Edge-native uptime</text>
+	<text x="96" y="378" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="76" font-weight="800" fill="#7ea6ff">monitoring &amp; status pages</text>
+
+	<text x="96" y="452" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="30" font-weight="500" fill="#a5b4cb">Runs entirely on your own Cloudflare account. $0 infrastructure.</text>
+
+	<!-- uptime bars -->
+	<g transform="translate(96 508)">
+		<rect x="0"   y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="22"  y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="44"  y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="66"  y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="88"  y="0" width="15" height="42" rx="5" fill="#f59e0b"/>
+		<rect x="110" y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="132" y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="154" y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="176" y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<rect x="198" y="0" width="15" height="42" rx="5" fill="#10b981"/>
+		<text x="236" y="31" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="600" fill="#10b981">99.98% uptime</text>
+	</g>
+
+	<g transform="translate(96 592)">
+		<text x="0" y="0" font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="24" font-weight="500" fill="#64748b">Astro · Cloudflare Workers · D1 · MIT licensed · github.com/iharshalp/UptimeCove</text>
+	</g>
+</svg>
