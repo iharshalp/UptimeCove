@@ -1,0 +1,41 @@
+UptimeCove — edge-native uptime monitoring on Cloudflare Workers
+
+Astro 7 + Cloudflare Workers + D1 + KV. Monitors HTTP/TCP endpoints from
+Cloudflare's edge, records check history, opens and resolves incidents, and
+publishes branded public status pages. Runs on the free tier.
+
+Monitoring
+  - Configurable interval, timeout, expected status, body assertions and
+    max response time; custom headers; redirects re-validated each hop
+  - SSRF protection: private/reserved networks, bad ports, embedded
+    credentials and fragments all rejected
+  - Heartbeat (dead-man's-switch) monitors via POST|GET
+    /api/heartbeat/:id/ping, swept against their grace window each minute
+  - Per-minute cron claims up to 50 due monitors with leases, concurrency 5
+
+Status and incidents
+  - Public status pages (/status/:slug) with per-page monitor selection,
+    90-day uptime bars and correct weighted uptime
+  - Incidents open on the second consecutive failure and resolve on
+    recovery, with a single-open-incident guarantee
+  - Maintenance windows (global or per-monitor) suppress incidents and alerts
+  - Email subscribers, RSS feed, status badge SVG, public JSON API
+
+Auth
+  - Single ADMIN_TOKEN exchanged for an opaque uc_session cookie
+    (HttpOnly, SameSite=Lax, Secure in prod, 7d)
+  - Scoped API keys (uc_...) stored SHA-256 hashed, sent as Bearer
+  - Public without credentials: /api/status/*, /api/badge/*, /api/auth/*,
+    /api/heartbeat/*/ping. Everything else under /api/* is gated.
+
+Site and SEO
+  - Landing, API docs, about, contact, privacy and terms pages, written
+    against what the code actually does
+  - Canonical URLs, JSON-LD, 1200x630 PNG social card, PWA manifest
+  - noindex on /dashboard/*, /demo and /login, with robots.txt and
+    sitemap.xml kept consistent with it
+  - PUBLIC_SITE_NAME white-labels titles, og:site_name, JSON-LD and RSS
+
+Setup: copy wrangler.jsonc.example -> wrangler.jsonc, set ADMIN_TOKEN in
+.dev.vars, then npm run db:migrate && npm run dev. Cloudflare resource IDs
+and secrets are gitignored.
